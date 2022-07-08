@@ -1,0 +1,27 @@
+{
+  "name": "cachified",
+  "version": "0.0.0-development",
+  "description": "neat wrapper for various caches",
+  "main": "dist/index.cjs",
+  "scripts": {
+    "test": "jest"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/Xiphe/cachified.git"
+  },
+  "keywords": [
+    "cache",
+    "wrapper",
+    "typescript",
+    "lru-cache",
+    "redis",
+    "typed"
+  ],
+  "author": "Hannes Diercks <node@xiphe.net> (https://xiphe.net/)",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/Xiphe/cachified/issues"
+  },
+  "homepage": "https://github.com/Xiphe/cachified#readme"
+}

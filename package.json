@@ -1,6 +1,6 @@
 {
   "name": "cachified",
-  "version": "0.0.0-development",
+  "version": "0.0.1-beta.1",
   "description": "neat wrapper for various caches",
   "main": "dist/index.cjs",
   "module": "dist/index.js",

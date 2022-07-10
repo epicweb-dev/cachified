@@ -2,6 +2,10 @@
   "compilerOptions": {
     "strict": true,
     "lib": ["ES2022", "DOM"],
-    "esModuleInterop": true
-  }
+    "esModuleInterop": true,
+    "outDir": "dist",
+    "declaration": true,
+    "emitDeclarationOnly": true
+  },
+  "include": ["src/*"]
 }

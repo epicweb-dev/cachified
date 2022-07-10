@@ -1,176 +1,137 @@
-import LRU from 'lru-cache';
-import { formatDuration, intervalToDuration } from 'date-fns';
-import type { Timings } from './metrics.server';
-import { time } from './metrics.server';
-import { getUser } from './session.server';
-
-function niceFormatDuration(milliseconds: number) {
-  const duration = intervalToDuration({ start: 0, end: milliseconds });
-  const formatted = formatDuration(duration, { delimiter: ', ' });
-  const ms = milliseconds % 1000;
-  return [formatted, ms ? `${ms.toFixed(3)}ms` : null]
-    .filter(Boolean)
-    .join(', ');
-}
-
-declare global {
-  // This preserves the LRU cache during development
-  // eslint-disable-next-line
-  var lruCache:
-    | (LRU<string, { metadata: CacheMetadata; value: any }> & { name: string })
-    | undefined;
-}
-
-const lruCache = (global.lruCache = global.lruCache
-  ? global.lruCache
-  : createLruCache());
-
-function createLruCache() {
-  // doing anything other than "any" here was a big pain
-  const newCache = new LRU<string, { metadata: CacheMetadata; value: any }>({
-    max: 1000,
-    ttl: 1000 * 60 * 60, // 1 hour
-  });
-  Object.assign(newCache, { name: 'LRU' });
-  return newCache as typeof newCache & { name: 'LRU' };
-}
-
-type CacheMetadata = {
+export interface CacheMetadata {
   createdTime: number;
-  maxAge: number | null;
-};
-
-function shouldRefresh(metadata: CacheMetadata) {
-  if (metadata.maxAge) {
-    return Date.now() > metadata.createdTime + metadata.maxAge;
-  }
-  return false;
+  ttl?: number | null;
+  swv?: number | null;
 }
 
-type VNUP<Value> = Value | null | undefined | Promise<Value | null | undefined>;
+export interface CacheEntry<Value> {
+  metadata: CacheMetadata;
+  value: Value;
+}
 
-const keysRefreshing = new Set();
+type Eventually<Value> =
+  | Value
+  | null
+  | undefined
+  | Promise<Value | null | undefined>;
 
-async function cachified<
-  Value,
-  Cache extends {
-    name: string;
-    get: (key: string) => VNUP<{
-      metadata: CacheMetadata;
-      value: Value;
-    }>;
-    set: (
-      key: string,
-      value: {
-        metadata: CacheMetadata;
-        value: Value;
-      },
-    ) => unknown | Promise<unknown>;
-    del: (key: string) => unknown | Promise<unknown>;
-  },
->(options: {
+export interface Cache<Value> {
+  name: string;
+  get: (key: string) => Eventually<{
+    metadata: CacheMetadata;
+    value: Value;
+  }>;
+  set: (key: string, value: CacheEntry<Value>) => unknown | Promise<unknown>;
+  del: (key: string) => unknown | Promise<unknown>;
+}
+
+type Timings = Record<
+  string,
+  Array<{ name: string; type: string; time: number }>
+>;
+
+export interface CachifiedOptions<Value, CacheImpl extends Cache<Value>> {
   key: string;
-  cache: Cache;
-  getFreshValue: () => Promise<Value>;
-  checkValue?: (value: Value) => boolean | string;
+  cache: CacheImpl;
+  getFreshValue: () => Value | Promise<Value>;
+  checkValue?: (value: unknown) => boolean | string;
+  logger?: Pick<typeof console, 'log' | 'error' | 'warn'>;
   forceFresh?: boolean | string;
-  request?: Request;
+  // request?: Request;
   fallbackToCache?: boolean;
   timings?: Timings;
   timingType?: string;
-  maxAge?: number;
-}): Promise<Value> {
+  ttl?: number;
+  staleWhileRevalidate?: number;
+  performance?: Pick<Performance, 'now'>;
+  staleRefreshTimeout?: number;
+  formatDuration?: (duration: number) => string;
+}
+
+const pendingValuesByCache = new WeakMap<Cache<any>, Map<string, any>>();
+
+export async function cachified<Value, CacheImpl extends Cache<Value>>(
+  options: CachifiedOptions<Value, CacheImpl>,
+): Promise<Value> {
   const {
     key,
     cache,
-    getFreshValue,
-    request,
-    checkValue = (value) => Boolean(value),
-    fallbackToCache = true,
+    checkValue = () => true,
+    logger = console,
     timings,
-    timingType = 'getting fresh value',
-    maxAge,
+    ttl,
+    performance = global.performance,
+    staleWhileRevalidate = 0,
+    staleRefreshTimeout = 0,
   } = options;
 
+  if (!pendingValuesByCache.has(cache)) {
+    pendingValuesByCache.set(cache, new Map());
+  }
+  const pendingValues: Map<
+    string,
+    CacheEntry<Promise<Value>> & { resolve: (value: Value) => void }
+  > = pendingValuesByCache.get(cache)!;
+
+  const metadata: CacheMetadata = {
+    ttl: ttl ?? null,
+    swv: staleWhileRevalidate === Infinity ? null : staleWhileRevalidate,
+    createdTime: Date.now(),
+  };
+
   // if forceFresh is a string, we'll only force fresh if the key is in the
-  // comma separated list. Otherwise we'll go with it's value and fallback
-  // to the shouldForceFresh function on the request if the request is provided
-  // otherwise it's false.
+  // comma separated list.
   const forceFresh =
     typeof options.forceFresh === 'string'
       ? options.forceFresh.split(',').includes(key)
-      : options.forceFresh ??
-        (request ? await shouldForceFresh(request, key) : false);
-
-  function assertCacheEntry(entry: unknown): asserts entry is {
-    metadata: CacheMetadata;
-    value: Value;
-  } {
-    if (typeof entry !== 'object' || entry === null) {
-      throw new Error(
-        `Cache entry for ${key} is not a cache entry object, it's a ${typeof entry}`,
-      );
-    }
-    if (!('metadata' in entry)) {
-      throw new Error(
-        `Cache entry for ${key} does not have a metadata property`,
-      );
-    }
-    if (!('value' in entry)) {
-      throw new Error(`Cache entry for ${key} does not have a value property`);
-    }
-  }
+      : options.forceFresh;
 
   if (!forceFresh) {
     try {
       const cached = await time({
         name: `cache.get(${key})`,
         type: 'cache read',
+        performance,
         fn: () => cache.get(key),
         timings,
       });
       if (cached) {
-        assertCacheEntry(cached);
+        assertCacheEntry(cached, key);
+        const refresh = shouldRefresh(cached.metadata);
+        const staleRefresh =
+          refresh === 'stale' ||
+          (refresh === 'now' && staleWhileRevalidate === Infinity);
 
-        if (shouldRefresh(cached.metadata)) {
-          // time to refresh the value. Fire and forget so we don't slow down
-          // this request
-          // we use setTimeout here to make sure this happens on the next tick
-          // of the event loop so we don't end up slowing this request down in the
-          // event the cache is synchronous (unlikely now, but if the code is changed
-          // then it's quite possible this could happen and it would be easy to
-          // forget to check).
-          // In practice we have had a handful of situations where multiple
-          // requests triggered a refresh of the same resource, so that's what
-          // the keysRefreshing thing is for to ensure we don't refresh a
-          // value if it's already in the process of being refreshed.
-          if (!keysRefreshing.has(key)) {
-            keysRefreshing.add(key);
-            setTimeout(() => {
-              // eslint-disable-next-line prefer-object-spread
-              void cachified(Object.assign({}, options, { forceFresh: true }))
-                .catch(() => {})
-                .finally(() => {
-                  keysRefreshing.delete(key);
-                });
-            }, 200);
-          }
+        if (staleRefresh) {
+          // refresh cache in background so future requests are faster
+          setTimeout(() => {
+            void cachified({
+              ...options,
+              forceFresh: true,
+              fallbackToCache: false,
+            }).catch(() => {
+              // Ignore error since this was just in preparation for a future request
+            });
+          }, staleRefreshTimeout);
         }
-        const valueCheck = checkValue(cached.value);
-        if (valueCheck === true) {
-          return cached.value;
-        } else {
-          const reason =
-            typeof valueCheck === 'string' ? valueCheck : 'unknown';
-          console.warn(
-            `check failed for cached value of ${key}\nReason: ${reason}.\nDeleting the cache key and trying to get a fresh value.`,
-            cached,
-          );
-          await cache.del(key);
+
+        if (!refresh || staleRefresh) {
+          const valueCheck = checkValue(cached.value);
+          if (valueCheck === true) {
+            return cached.value;
+          } else {
+            const reason =
+              typeof valueCheck === 'string' ? valueCheck : 'unknown';
+            logger.warn(
+              `check failed for cached value of ${key}\nReason: ${reason}.\nDeleting the cache key and trying to get a fresh value.`,
+              cached,
+            );
+            await cache.del(key);
+          }
         }
       }
     } catch (error: unknown) {
-      console.error(
+      logger.error(
         `error with cache at ${key}. Deleting the cache key and trying to get a fresh value.`,
         error,
       );
@@ -178,74 +139,216 @@ async function cachified<
     }
   }
 
+  if (pendingValues.has(key)) {
+    const { value, metadata } = pendingValues.get(key)!;
+    if (!shouldRefresh(metadata)) {
+      return value;
+    }
+  }
+
+  let resolveEarly: (value: Value) => void;
+
+  const freshValue = Promise.race([
+    // try to get a fresh value
+    getFreshValue(options, metadata),
+    // when a later call is faster, we'll take it's response
+    new Promise<Value>((r) => {
+      resolveEarly = r;
+    }),
+  ]).finally(() => {
+    pendingValues.delete(key);
+  });
+
+  // here we inform earlier calls that we got a response
+  if (pendingValues.has(key)) {
+    const { resolve } = pendingValues.get(key)!;
+    freshValue.then((value) => resolve(value));
+  }
+
+  pendingValues.set(key, {
+    metadata,
+    value: freshValue,
+    resolve(value) {
+      // here we receive a fresh value from a later call and use that
+      resolveEarly(value);
+    },
+  });
+
+  return freshValue;
+}
+
+async function getFreshValue<Value, CacheImpl extends Cache<Value>>(
+  options: CachifiedOptions<Value, CacheImpl>,
+  metadata: CacheMetadata,
+): Promise<Value> {
   const start = performance.now();
-  const value = await time({
-    name: `getFreshValue for ${key}`,
-    type: timingType,
-    fn: getFreshValue,
+  const {
+    fallbackToCache = true,
+    timingType = 'getting fresh value',
+    formatDuration = durationInMs,
+    key,
+    getFreshValue,
     timings,
-  }).catch((error: unknown) => {
-    console.error(
+    logger = console,
+    forceFresh,
+    cache,
+    checkValue = () => true,
+  } = options;
+
+  try {
+    var value = await time({
+      name: `getFreshValue for ${key}`,
+      type: timingType,
+      fn: getFreshValue,
+      performance,
+      timings,
+    });
+  } catch (error) {
+    logger.error(
       `getting a fresh value for ${key} failed`,
       { fallbackToCache, forceFresh },
       error,
     );
-    // If we got this far without forceFresh then we know there's nothing
-    // in the cache so no need to bother trying again without a forceFresh.
-    // So we need both the option to fallback and the ability to fallback.
+    // in case a fresh value was forced (and errored) we might be able to
+    // still get one from cache
     if (fallbackToCache && forceFresh) {
-      return cachified({ ...options, forceFresh: false });
+      var value = await cachified({ ...options, forceFresh: false });
     } else {
+      // we are either not allowed to check the cache or already checked it
+      // nothing we can do anymore
       throw error;
     }
-  });
+  }
   const totalTime = performance.now() - start;
 
   const valueCheck = checkValue(value);
-  if (valueCheck === true) {
-    const metadata: CacheMetadata = {
-      maxAge: maxAge ?? null,
-      createdTime: Date.now(),
-    };
-    try {
-      console.log(
-        `Updating the cache value for ${key}.`,
-        `Getting a fresh value for this took ${niceFormatDuration(totalTime)}.`,
-        `Caching for a minimum of ${
-          typeof maxAge === 'number'
-            ? `${niceFormatDuration(maxAge)}`
-            : 'forever'
-        } in ${cache.name}.`,
-      );
-      await cache.set(key, { metadata, value });
-    } catch (error: unknown) {
-      console.error(`error setting cache: ${key}`, error);
-    }
-  } else {
+  if (valueCheck !== true) {
     const reason = typeof valueCheck === 'string' ? valueCheck : 'unknown';
-    console.error(
-      `check failed for cached value of ${key}\nReason: ${reason}.\nDeleting the cache key and trying to get a fresh value.`,
+    logger.error(
+      `check failed for cached value of ${key}`,
+      `Reason: ${reason}.\nDeleting the cache key and trying to get a fresh value.`,
       value,
     );
     throw new Error(`check failed for fresh value of ${key}`);
+  } else if (shouldRefresh(metadata) === 'now') {
+    // This also prevents long running refresh calls to overwrite more recent cache entries
+    logger.log(
+      `Not updating the cache value for ${key}.`,
+      `Getting a fresh value for this took ${formatDuration(totalTime)}.`,
+      `Thereby exceeding caching time of ${formatCacheTime(
+        metadata,
+        formatDuration,
+      )}`,
+    );
+  } else {
+    try {
+      logger.log(
+        `Updating the cache value for ${key}.`,
+        `Getting a fresh value for this took ${formatDuration(totalTime)}.`,
+        `Caching for ${formatCacheTime(metadata, formatDuration)} in ${
+          cache.name
+        }.`,
+      );
+      await cache.set(key, { metadata, value });
+    } catch (error: unknown) {
+      logger.error(`error setting cache: ${key}`, error);
+    }
   }
+
   return value;
 }
 
-async function shouldForceFresh(request: Request, key: string) {
-  const fresh = new URL(request.url).searchParams.get('fresh');
-  if (typeof fresh !== 'string') return false;
-  if ((await getUser(request))?.role !== 'ADMIN') return false;
-  if (fresh === '') return true;
+function formatCacheTime(
+  { ttl, swv }: CacheMetadata,
+  formatDuration: (duration: number) => string,
+) {
+  if (ttl == null || swv == null) {
+    return `forever${
+      ttl != null ? ` (revalidation after ${formatDuration(ttl)})` : ''
+    }`;
+  }
 
-  return fresh.split(',').includes(key);
+  return `${formatDuration(ttl)} + ${formatDuration(swv)} stale`;
 }
 
-export { cachified, lruCache };
+function durationInMs(durationMs: number) {
+  return `${durationMs}ms`;
+}
 
-/*
-eslint
-  max-depth: "off",
-  no-multi-assign: "off",
-  @typescript-eslint/no-explicit-any: "off",
-*/
+function shouldRefresh(metadata: CacheMetadata): 'now' | 'stale' | false {
+  if (metadata.ttl) {
+    const valid = metadata.createdTime + metadata.ttl;
+    const stale = valid + (metadata.swv || 0);
+    const now = Date.now();
+    if (now <= valid) {
+      return false;
+    }
+    if (now <= stale) {
+      return 'stale';
+    }
+
+    return 'now';
+  }
+  return false;
+}
+
+function assertCacheEntry(
+  entry: unknown,
+  key: string,
+): asserts entry is {
+  metadata: CacheMetadata;
+  value: unknown;
+} {
+  if (!isRecord(entry)) {
+    throw new Error(
+      `Cache entry for ${key} is not a cache entry object, it's a ${typeof entry}`,
+    );
+  }
+  if (
+    !isRecord(entry.metadata) ||
+    typeof entry.metadata.createdTime !== 'number' ||
+    (entry.metadata.ttl != null && typeof entry.metadata.ttl !== 'number') ||
+    (entry.metadata.swr != null && typeof entry.metadata.swr !== 'number')
+  ) {
+    throw new Error(
+      `Cache entry for ${key} does not have valid metadata property`,
+    );
+  }
+
+  if (!('value' in entry)) {
+    throw new Error(`Cache entry for ${key} does not have a value property`);
+  }
+}
+
+function isRecord(entry: unknown): entry is Record<string, unknown> {
+  return typeof entry === 'object' && entry !== null && !Array.isArray(entry);
+}
+
+interface TimeOptions<ReturnType> {
+  name: string;
+  type: string;
+  performance: Pick<Performance, 'now'>;
+  fn: () => ReturnType | Promise<ReturnType>;
+  timings?: Timings;
+}
+async function time<ReturnType>({
+  name,
+  type,
+  fn,
+  performance,
+  timings,
+}: TimeOptions<ReturnType>): Promise<ReturnType> {
+  if (!timings) return fn();
+
+  const start = performance.now();
+  const result = await fn();
+  type = type.replaceAll(' ', '_');
+  let timingType = timings[type];
+  if (!timingType) {
+    // eslint-disable-next-line no-multi-assign
+    timingType = timings[type] = [];
+  }
+
+  timingType.push({ name, type, time: performance.now() - start });
+  return result;
+}

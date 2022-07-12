@@ -177,6 +177,67 @@ export async function cachified<Value, CacheImpl extends Cache<Value>>(
   return freshValue;
 }
 
+export function createBatch<Value, Param>(
+  getFreshValue: (params: Param[]) => Value[] | Promise<Value[]>,
+  autoSubmit: false,
+): {
+  submit: () => Promise<void>;
+  add(param: Param): () => Promise<Value>;
+};
+export function createBatch<Value, Param>(
+  getFreshValue: (params: Param[]) => Value[] | Promise<Value[]>,
+  autoSubmit?: number,
+): {
+  add(param: Param): () => Promise<Value>;
+};
+export function createBatch<Value, Param>(
+  getFreshValue: (params: Param[]) => Value[] | Promise<Value[]>,
+  autoSubmit: number | false = 0,
+): {
+  submit?: () => Promise<void>;
+  add(param: Param): () => Promise<Value>;
+} {
+  const requests: [
+    param: Param,
+    res: (value: Value) => void,
+    rej: (reason: unknown) => void,
+  ][] = [];
+  let submitted = false;
+  const checkSubmission = () => {
+    if (submitted) {
+      throw new Error('Can not add to batch after submission');
+    }
+  };
+  const submit = () => {
+    checkSubmission();
+    submitted = true;
+    return Promise.resolve(getFreshValue(requests.map(([param]) => param)))
+      .then((results) => {
+        results.forEach((value, index) => requests[index][1](value));
+      })
+      .catch((err) => {
+        requests.forEach(([_, __, rej]) => rej(err));
+      });
+  };
+
+  if (autoSubmit !== false) {
+    setTimeout(submit, autoSubmit);
+  }
+
+  return {
+    ...(autoSubmit === false ? { submit } : {}),
+    add(param: Param) {
+      checkSubmission();
+      return () => {
+        checkSubmission();
+        return new Promise<Value>((res, rej) => {
+          requests.push([param, res, rej]);
+        });
+      };
+    },
+  };
+}
+
 async function getFreshValue<Value, CacheImpl extends Cache<Value>>(
   options: CachifiedOptions<Value, CacheImpl>,
   metadata: CacheMetadata,

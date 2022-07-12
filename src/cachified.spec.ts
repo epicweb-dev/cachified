@@ -1,4 +1,4 @@
-import { cachified, CachifiedOptions } from './cachified';
+import { cachified, CachifiedOptions, createBatch } from './cachified';
 
 describe('cachified', () => {
   it('caches a value', async () => {
@@ -436,6 +436,60 @@ describe('cachified', () => {
 
     expect(value).toBe('ONE');
     expect(value2).toBe('TWO');
+  });
+
+  it('supports batch-getting fresh values', async () => {
+    const cache = createTestCache();
+    cache.set('test-2', {
+      value: 'YOLO!',
+      metadata: { ttl: null, swr: null, createdTime: Date.now() },
+    });
+    const getValues = jest.fn((indexes: number[]) =>
+      indexes.map((i) => `value-${i}`),
+    );
+    const batch = createBatch(getValues);
+
+    const values = await Promise.all(
+      [1, 2, 3].map((index) =>
+        cachified({
+          cache,
+          key: `test-${index}`,
+          logger: noopLogger,
+          getFreshValue: batch.add(index),
+        }),
+      ),
+    );
+
+    expect(values).toEqual(['value-1', 'YOLO!', 'value-3']);
+    expect(getValues).toHaveBeenCalledTimes(1);
+    expect(getValues).toHaveBeenCalledWith([1, 3]);
+  });
+
+  it('supports manual submission of batch', async () => {
+    const cache = createTestCache();
+    const getValues = jest.fn((indexes: (number | string)[]) =>
+      indexes.map((i) => `value-${i}`),
+    );
+    const batch = createBatch(getValues, false);
+
+    const valuesP = Promise.all(
+      [1, 'seven'].map((index) =>
+        cachified({
+          cache,
+          key: `test-${index}`,
+          logger: noopLogger,
+          getFreshValue: batch.add(index),
+        }),
+      ),
+    );
+    await delay(0);
+    expect(getValues).not.toHaveBeenCalled();
+
+    await batch.submit();
+
+    expect(await valuesP).toEqual(['value-1', 'value-seven']);
+    expect(getValues).toHaveBeenCalledTimes(1);
+    expect(getValues).toHaveBeenCalledWith([1, 'seven']);
   });
 
   it('logs reason when value check fails', async () => {

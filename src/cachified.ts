@@ -30,10 +30,15 @@ type Timings = Record<
   Array<{ name: string; type: string; time: number }>
 >;
 
+const HANDLE = Symbol();
+type GetFreshValue<Value> = {
+  (): Promise<Value> | Value;
+  [HANDLE]?: () => void;
+};
 export interface CachifiedOptions<Value, CacheImpl extends Cache<Value>> {
   key: string;
   cache: CacheImpl;
-  getFreshValue: () => Value | Promise<Value>;
+  getFreshValue: GetFreshValue<Value>;
   checkValue?: (value: unknown) => boolean | string;
   logger?: Pick<typeof console, 'log' | 'error' | 'warn'>;
   forceFresh?: boolean | string;
@@ -61,6 +66,7 @@ export async function cachified<Value, CacheImpl extends Cache<Value>>(
     timings,
     ttl,
     performance = global.performance || Date,
+    getFreshValue: { [HANDLE]: handle },
     staleWhileRevalidate = 0,
     staleRefreshTimeout = 0,
   } = options;
@@ -118,6 +124,10 @@ export async function cachified<Value, CacheImpl extends Cache<Value>>(
         if (!refresh || staleRefresh) {
           const valueCheck = checkValue(cached.value);
           if (valueCheck === true) {
+            if (!staleRefresh) {
+              // Notify batch that we handled this call using cached value
+              handle?.();
+            }
             return cached.value;
           } else {
             const reason =
@@ -177,63 +187,100 @@ export async function cachified<Value, CacheImpl extends Cache<Value>>(
   return freshValue;
 }
 
+type AddFn<Value, Param> = (param: Param) => GetFreshValue<Value>;
+
 export function createBatch<Value, Param>(
   getFreshValue: (params: Param[]) => Value[] | Promise<Value[]>,
   autoSubmit: false,
 ): {
   submit: () => Promise<void>;
-  add(param: Param): () => Promise<Value>;
+  add: AddFn<Value, Param>;
 };
 export function createBatch<Value, Param>(
   getFreshValue: (params: Param[]) => Value[] | Promise<Value[]>,
-  autoSubmit?: number,
 ): {
-  add(param: Param): () => Promise<Value>;
+  add: AddFn<Value, Param>;
 };
 export function createBatch<Value, Param>(
   getFreshValue: (params: Param[]) => Value[] | Promise<Value[]>,
-  autoSubmit: number | false = 0,
+  autoSubmit: boolean = true,
 ): {
   submit?: () => Promise<void>;
-  add(param: Param): () => Promise<Value>;
+  add: AddFn<Value, Param>;
 } {
   const requests: [
     param: Param,
     res: (value: Value) => void,
     rej: (reason: unknown) => void,
   ][] = [];
+  let adds = 0;
+  let handled = 0;
   let submitted = false;
   const checkSubmission = () => {
     if (submitted) {
       throw new Error('Can not add to batch after submission');
     }
   };
-  const submit = () => {
+  let resolveSubmission: () => void;
+  let rejectSubmission: (reason: unknown) => void;
+  const submissionP = new Promise<void>((res, rej) => {
+    resolveSubmission = res;
+    rejectSubmission = rej;
+  });
+
+  const submit = async () => {
+    if (handled !== adds) {
+      autoSubmit = true;
+      return submissionP;
+    }
     checkSubmission();
     submitted = true;
-    return Promise.resolve(getFreshValue(requests.map(([param]) => param)))
-      .then((results) => {
-        results.forEach((value, index) => requests[index][1](value));
-      })
-      .catch((err) => {
-        requests.forEach(([_, __, rej]) => rej(err));
-      });
+    try {
+      const results = await Promise.resolve(
+        getFreshValue(requests.map(([param]) => param)),
+      );
+      results.forEach((value, index) => requests[index][1](value));
+      resolveSubmission();
+    } catch (err) {
+      requests.forEach(([_, __, rej]) => rej(err));
+      rejectSubmission(err);
+    }
   };
 
-  if (autoSubmit !== false) {
-    setTimeout(submit, autoSubmit);
-  }
+  const trySubmitting = () => {
+    handled++;
+    if (autoSubmit === false) {
+      return;
+    }
+    submit();
+  };
 
   return {
     ...(autoSubmit === false ? { submit } : {}),
-    add(param: Param) {
+    add(param) {
       checkSubmission();
-      return () => {
-        checkSubmission();
-        return new Promise<Value>((res, rej) => {
-          requests.push([param, res, rej]);
-        });
-      };
+      adds++;
+      let handled = false;
+
+      return Object.assign(
+        () => {
+          return new Promise<Value>((res, rej) => {
+            requests.push([param, res, rej]);
+            if (!handled) {
+              handled = true;
+              trySubmitting();
+            }
+          });
+        },
+        {
+          [HANDLE]: () => {
+            if (!handled) {
+              handled = true;
+              trySubmitting();
+            }
+          },
+        },
+      );
     },
   };
 }

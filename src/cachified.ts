@@ -60,7 +60,7 @@ export async function cachified<Value, CacheImpl extends Cache<Value>>(
     logger = console,
     timings,
     ttl,
-    performance = global.performance,
+    performance = global.performance || Date,
     staleWhileRevalidate = 0,
     staleRefreshTimeout = 0,
   } = options;
@@ -181,7 +181,6 @@ async function getFreshValue<Value, CacheImpl extends Cache<Value>>(
   options: CachifiedOptions<Value, CacheImpl>,
   metadata: CacheMetadata,
 ): Promise<Value> {
-  const start = performance.now();
   const {
     fallbackToCache = true,
     timingType = 'getting fresh value',
@@ -192,8 +191,10 @@ async function getFreshValue<Value, CacheImpl extends Cache<Value>>(
     logger = console,
     forceFresh,
     cache,
+    performance = global.performance || Date,
     checkValue = () => true,
   } = options;
+  const start = performance.now();
 
   try {
     var value = await time({

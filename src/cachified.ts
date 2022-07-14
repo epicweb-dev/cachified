@@ -30,6 +30,7 @@ type Timings = Record<
   Array<{ name: string; type: string; time: number }>
 >;
 
+const CACHE_EMPTY = Symbol();
 const HANDLE = Symbol();
 type GetFreshValue<Value> = {
   (): Promise<Value> | Value;
@@ -58,18 +59,7 @@ const pendingValuesByCache = new WeakMap<Cache<any>, Map<string, any>>();
 export async function cachified<Value, CacheImpl extends Cache<Value>>(
   options: CachifiedOptions<Value, CacheImpl>,
 ): Promise<Value> {
-  const {
-    key,
-    cache,
-    checkValue = () => true,
-    logger = console,
-    timings,
-    ttl,
-    performance = global.performance || Date,
-    getFreshValue: { [HANDLE]: handle },
-    staleWhileRevalidate = 0,
-    staleRefreshTimeout = 0,
-  } = options;
+  const { key, cache, ttl, staleWhileRevalidate = 0 } = options;
 
   if (!pendingValuesByCache.has(cache)) {
     pendingValuesByCache.set(cache, new Map());
@@ -92,61 +82,10 @@ export async function cachified<Value, CacheImpl extends Cache<Value>>(
       ? options.forceFresh.split(',').includes(key)
       : options.forceFresh;
 
-  if (!forceFresh) {
-    try {
-      const cached = await time({
-        name: `cache.get(${key})`,
-        type: 'cache read',
-        performance,
-        fn: () => cache.get(key),
-        timings,
-      });
-      if (cached) {
-        assertCacheEntry(cached, key);
-        const refresh = shouldRefresh(cached.metadata);
-        const staleRefresh =
-          refresh === 'stale' ||
-          (refresh === 'now' && staleWhileRevalidate === Infinity);
-
-        if (staleRefresh) {
-          // refresh cache in background so future requests are faster
-          setTimeout(() => {
-            void cachified({
-              ...options,
-              forceFresh: true,
-              fallbackToCache: false,
-            }).catch(() => {
-              // Ignore error since this was just in preparation for a future request
-            });
-          }, staleRefreshTimeout);
-        }
-
-        if (!refresh || staleRefresh) {
-          const valueCheck = checkValue(cached.value);
-          if (valueCheck === true) {
-            if (!staleRefresh) {
-              // Notify batch that we handled this call using cached value
-              handle?.();
-            }
-            return cached.value;
-          } else {
-            const reason =
-              typeof valueCheck === 'string' ? valueCheck : 'unknown';
-            logger.warn(
-              `check failed for cached value of ${key}\nReason: ${reason}.\nDeleting the cache key and trying to get a fresh value.`,
-              cached,
-            );
-            await cache.del(key);
-          }
-        }
-      }
-    } catch (error: unknown) {
-      logger.error(
-        `error with cache at ${key}. Deleting the cache key and trying to get a fresh value.`,
-        error,
-      );
-      await cache.del(key);
-    }
+  const cachedValue =
+    (!forceFresh && (await getCachedValue(options))) || CACHE_EMPTY;
+  if (cachedValue !== CACHE_EMPTY) {
+    return cachedValue;
   }
 
   if (pendingValues.has(key)) {
@@ -185,6 +124,90 @@ export async function cachified<Value, CacheImpl extends Cache<Value>>(
   });
 
   return freshValue;
+}
+
+async function getCacheEntry<Value, CacheImpl extends Cache<Value>>({
+  key,
+  cache,
+  timings,
+  performance = global.performance || Date,
+}: CachifiedOptions<Value, CacheImpl>): Promise<
+  CacheEntry<Value> | typeof CACHE_EMPTY
+> {
+  const cached = await time({
+    name: `cache.get(${key})`,
+    type: 'cache read',
+    performance,
+    fn: () => cache.get(key),
+    timings,
+  });
+  if (cached) {
+    assertCacheEntry(cached, key);
+    return cached;
+  }
+  return CACHE_EMPTY;
+}
+
+async function getCachedValue<Value, CacheImpl extends Cache<Value>>(
+  options: CachifiedOptions<Value, CacheImpl>,
+): Promise<Value | typeof CACHE_EMPTY> {
+  const {
+    key,
+    cache,
+    staleWhileRevalidate,
+    staleRefreshTimeout,
+    checkValue = () => true,
+    getFreshValue: { [HANDLE]: handle },
+    logger = console,
+  } = options;
+  try {
+    const cached = await getCacheEntry(options);
+    if (cached !== CACHE_EMPTY) {
+      const refresh = shouldRefresh(cached.metadata);
+      const staleRefresh =
+        refresh === 'stale' ||
+        (refresh === 'now' && staleWhileRevalidate === Infinity);
+
+      if (staleRefresh) {
+        // refresh cache in background so future requests are faster
+        setTimeout(() => {
+          void cachified({
+            ...options,
+            forceFresh: true,
+            fallbackToCache: false,
+          }).catch(() => {
+            // Ignore error since this was just in preparation for a future request
+          });
+        }, staleRefreshTimeout);
+      }
+
+      if (!refresh || staleRefresh) {
+        const valueCheck = checkValue(cached.value);
+        if (valueCheck === true) {
+          if (!staleRefresh) {
+            // Notify batch that we handled this call using cached value
+            handle?.();
+          }
+          return cached.value;
+        } else {
+          const reason =
+            typeof valueCheck === 'string' ? valueCheck : 'unknown';
+          logger.warn(
+            `check failed for cached value of ${key}\nReason: ${reason}.\nDeleting the cache key and trying to get a fresh value.`,
+            cached,
+          );
+          await cache.del(key);
+        }
+      }
+    }
+  } catch (error: unknown) {
+    logger.error(
+      `error with cache at ${key}. Deleting the cache key and trying to get a fresh value.`,
+      error,
+    );
+    await cache.del(key);
+  }
+  return CACHE_EMPTY;
 }
 
 type AddFn<Value, Param> = (param: Param) => GetFreshValue<Value>;
@@ -304,8 +327,9 @@ async function getFreshValue<Value, CacheImpl extends Cache<Value>>(
   } = options;
   const start = performance.now();
 
+  let value: Value;
   try {
-    var value = await time({
+    value = await time({
       name: `getFreshValue for ${key}`,
       type: timingType,
       fn: getFreshValue,
@@ -321,7 +345,11 @@ async function getFreshValue<Value, CacheImpl extends Cache<Value>>(
     // in case a fresh value was forced (and errored) we might be able to
     // still get one from cache
     if (fallbackToCache && forceFresh) {
-      var value = await cachified({ ...options, forceFresh: false });
+      const entry = await getCacheEntry(options);
+      if (entry === CACHE_EMPTY) {
+        throw error;
+      }
+      value = entry.value;
     } else {
       // we are either not allowed to check the cache or already checked it
       // nothing we can do anymore

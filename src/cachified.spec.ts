@@ -26,7 +26,7 @@ describe('cachified', () => {
     expect(value2).toBe('ONE');
   });
 
-  it('throws when no fresh value can be received for empty cache', () => {
+  it('throws when no fresh value can be received for empty cache', async () => {
     const cache = createTestCache();
 
     const value = cachified({
@@ -38,10 +38,26 @@ describe('cachified', () => {
       },
     });
 
-    expect(value).rejects.toMatchInlineSnapshot(`[Error: 🙈]`);
+    await expect(value).rejects.toMatchInlineSnapshot(`[Error: 🙈]`);
   });
 
-  it('throws when fresh value does not meet value check', () => {
+  it('throws when no forced fresh value can be received on empty cache', async () => {
+    const cache = createTestCache();
+
+    const value = cachified({
+      cache,
+      key: 'test',
+      forceFresh: true,
+      logger: noopLogger,
+      getFreshValue() {
+        throw new Error('☠️');
+      },
+    });
+
+    await expect(value).rejects.toMatchInlineSnapshot(`[Error: ☠️]`);
+  });
+
+  it('throws when fresh value does not meet value check', async () => {
     const cache = createTestCache();
 
     const value = cachified({
@@ -56,7 +72,7 @@ describe('cachified', () => {
       },
     });
 
-    expect(value).rejects.toMatchInlineSnapshot(
+    await expect(value).rejects.toMatchInlineSnapshot(
       `[Error: check failed for fresh value of test]`,
     );
   });
@@ -166,7 +182,7 @@ describe('cachified', () => {
     });
 
     expect(value1).toBe('ONE');
-    expect(value2).rejects.toMatchInlineSnapshot(`"👾"`);
+    await expect(value2).rejects.toMatchInlineSnapshot(`"👾"`);
   });
 
   it('handles cache write fails', async () => {

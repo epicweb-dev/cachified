@@ -4,13 +4,13 @@
   "description": "neat wrapper for various caches",
   "main": "dist/index.cjs",
   "module": "dist/index.js",
-  "types": "dist/cachified.d.ts",
+  "types": "dist/index.d.ts",
   "scripts": {
     "prepare": "npm t && rm -rf dist && npm run build",
     "build": "npm run build:declarations && npm run build:esm && npm run build:cjs",
     "build:declarations": "tsc && rm dist/cachified.spec.d.ts",
-    "build:esm": "esbuild src/cachified.ts --outfile=dist/index.js --format=esm --target=es2020 --sourcemap --minify",
-    "build:cjs": "esbuild src/cachified.ts --outfile=dist/index.cjs --format=cjs --target=es2020 --sourcemap --minify",
+    "build:esm": "esbuild src/index.ts --outfile=dist/index.js --format=esm --target=es2020 --sourcemap --minify",
+    "build:cjs": "esbuild src/index.ts --outfile=dist/index.cjs --format=cjs --target=es2020 --sourcemap --minify",
     "test": "jest"
   },
   "repository": {

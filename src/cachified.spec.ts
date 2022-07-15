@@ -1,4 +1,4 @@
-import { cachified, CachifiedOptions, createBatch } from './cachified';
+import { cachified, CachifiedOptions, createBatch } from './index';
 
 describe('cachified', () => {
   it('caches a value', async () => {

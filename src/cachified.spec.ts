@@ -863,8 +863,8 @@ function delay(ms: number) {
 
 function createReporter() {
   const reporter = jest.fn();
-  const creator = (key: string, metadata: CacheMetadata) => {
-    reporter({ name: 'init', key, metadata });
+  const creator = (options: CachifiedOptions<any>, metadata: CacheMetadata) => {
+    reporter({ name: 'init', key: options.key, metadata });
     return reporter;
   };
   creator.mock = reporter.mock;

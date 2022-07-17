@@ -29,7 +29,7 @@ export async function cachified<Value>(
     swv: staleWhileRevalidate === Infinity ? null : staleWhileRevalidate,
     createdTime: Date.now(),
   };
-  const report = reporter(key, metadata);
+  const report = reporter(options, metadata);
 
   // Register this cache
   if (!pendingValuesByCache.has(cache)) {

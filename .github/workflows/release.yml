@@ -4,9 +4,12 @@ on:
     branches:
       - main
   pull_request: {}
+
 permissions:
   actions: write
-  contents: read
+  contents: write
+  issues: write
+  pull-requests: write
 
 defaults:
   run:

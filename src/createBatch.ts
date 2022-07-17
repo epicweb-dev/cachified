@@ -66,7 +66,9 @@ export function createBatch<Value, Param>(
     if (autoSubmit === false) {
       return;
     }
-    submit();
+    submit().catch(() => {
+      /* ¯\_(ツ)_/¯ */
+    });
   };
 
   return {

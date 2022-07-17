@@ -1,3 +1,5 @@
+import { CreateReporter } from './reporter';
+
 export interface CacheMetadata {
   createdTime: number;
   ttl?: number | null;
@@ -31,25 +33,15 @@ export type GetFreshValue<Value> = {
   [HANDLE]?: () => void;
 };
 
-export type Timings = Record<
-  string,
-  Array<{ name: string; type: string; time: number }>
->;
-
 export interface CachifiedOptions<Value, CacheImpl extends Cache<Value>> {
   key: string;
   cache: CacheImpl;
   getFreshValue: GetFreshValue<Value>;
   checkValue?: (value: unknown) => boolean | string;
-  logger?: Pick<typeof console, 'log' | 'error' | 'warn'>;
   forceFresh?: boolean | string;
-  // request?: Request;
   fallbackToCache?: boolean;
-  timings?: Timings;
-  timingType?: string;
+  reporter?: CreateReporter<Value>;
   ttl?: number;
   staleWhileRevalidate?: number;
-  performance?: Pick<Performance, 'now'>;
   staleRefreshTimeout?: number;
-  formatDuration?: (duration: number) => string;
 }

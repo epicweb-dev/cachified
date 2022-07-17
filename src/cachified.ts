@@ -16,12 +16,19 @@ const pendingValuesByCache = new WeakMap<Cache<any>, Map<string, any>>();
 export async function cachified<Value, CacheImpl extends Cache<Value>>(
   options: CachifiedOptions<Value, CacheImpl>,
 ): Promise<Value> {
-  const { key, cache, ttl, staleWhileRevalidate = 0 } = options;
+  const {
+    key,
+    cache,
+    ttl,
+    staleWhileRevalidate = 0,
+    reporter = () => () => {},
+  } = options;
   const metadata: CacheMetadata = {
     ttl: ttl ?? null,
     swv: staleWhileRevalidate === Infinity ? null : staleWhileRevalidate,
     createdTime: Date.now(),
   };
+  const report = reporter(key, metadata);
 
   // Register this cache
   if (!pendingValuesByCache.has(cache)) {
@@ -40,7 +47,7 @@ export async function cachified<Value, CacheImpl extends Cache<Value>>(
       : options.forceFresh;
 
   const cachedValue =
-    (!forceFresh && (await getCachedValue(options))) || CACHE_EMPTY;
+    (!forceFresh && (await getCachedValue(options, report))) || CACHE_EMPTY;
   if (cachedValue !== CACHE_EMPTY) {
     return cachedValue;
   }
@@ -48,6 +55,7 @@ export async function cachified<Value, CacheImpl extends Cache<Value>>(
   if (pendingValues.has(key)) {
     const { value: pendingRefreshValue, metadata } = pendingValues.get(key)!;
     if (!shouldRefresh(metadata)) {
+      report({ name: 'getFreshValueHookPending' });
       return pendingRefreshValue;
     }
   }
@@ -55,7 +63,7 @@ export async function cachified<Value, CacheImpl extends Cache<Value>>(
   let resolveFromFuture: (value: Value) => void;
   const freshValue = Promise.race([
     // try to get a fresh value
-    getFreshValue(options, metadata),
+    getFreshValue(options, metadata, report),
     // or when a future call is faster, we'll take it's value
     // this happens when getting value of first call takes longer then ttl + second response
     new Promise<Value>((r) => {

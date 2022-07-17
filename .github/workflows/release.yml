@@ -61,6 +61,10 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: 18
+
+      - name: 📥 Download deps
+        uses: bahmutov/npm-install@v1
+
       - name: ⚙️ Semantic Release
         run: npx semantic-release
         env:

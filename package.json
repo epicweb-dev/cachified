@@ -1,12 +1,12 @@
 {
   "name": "cachified",
-  "version": "0.0.1-beta.5",
+  "version": "0.0.0-development",
   "description": "neat wrapper for various caches",
   "main": "dist/index.cjs",
   "module": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
-    "prepare": "npm t && rm -rf dist && npm run build",
+    "prepare": "rm -rf dist && npm run build",
     "build": "npm run build:declarations && npm run build:esm && npm run build:cjs",
     "build:declarations": "tsc && rm dist/cachified.spec.d.ts",
     "build:esm": "esbuild src/index.ts --outfile=dist/index.js --format=esm --target=es2020 --sourcemap --minify",
@@ -15,7 +15,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+ssh://git@github.com/Xiphe/cachified.git"
+    "url": "https://github.com/Xiphe/cachified.git"
   },
   "keywords": [
     "cache",

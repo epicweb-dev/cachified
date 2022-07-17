@@ -27,7 +27,7 @@ describe('cachified', () => {
   });
 
   it('caches a value', async () => {
-    const cache = createTestCache();
+    const cache = new Map<string, CacheEntry<string>>();
     const reporter = createReporter();
     const reporter2 = createReporter();
 
@@ -45,8 +45,7 @@ describe('cachified', () => {
       key: 'test',
       reporter: reporter2,
       getFreshValue() {
-        // not used because key 'test' is already in cache
-        expect(false).toBe('This should never happen!');
+        throw new Error('🚧');
       },
     });
 
@@ -77,7 +76,7 @@ describe('cachified', () => {
   });
 
   it('throws when no fresh value can be received for empty cache', async () => {
-    const cache = createTestCache();
+    const cache = new Map<string, CacheEntry<string>>();
     const reporter = createReporter();
 
     const value = cachified({
@@ -103,7 +102,7 @@ describe('cachified', () => {
   });
 
   it('throws when no forced fresh value can be received on empty cache', async () => {
-    const cache = createTestCache();
+    const cache = new Map<string, CacheEntry<string>>();
 
     const value = cachified({
       cache,
@@ -118,7 +117,7 @@ describe('cachified', () => {
   });
 
   it('throws when fresh value does not meet value check', async () => {
-    const cache = createTestCache();
+    const cache = new Map<string, CacheEntry<string>>();
     const reporter = createReporter();
     const reporter2 = createReporter();
 
@@ -180,7 +179,7 @@ describe('cachified', () => {
   });
 
   it('gets different values for different keys', async () => {
-    const cache = createTestCache();
+    const cache = new Map<string, CacheEntry<string>>();
 
     const value = await cachified({
       cache,
@@ -213,7 +212,7 @@ describe('cachified', () => {
   });
 
   it('gets fresh value when forced to', async () => {
-    const cache = createTestCache();
+    const cache = new Map<string, CacheEntry<string>>();
 
     const value = await cachified({
       cache,
@@ -236,7 +235,7 @@ describe('cachified', () => {
   });
 
   it('falls back to cache when forced fresh value fails', async () => {
-    const cache = createTestCache();
+    const cache = new Map<string, CacheEntry<string>>();
     const reporter = createReporter();
 
     cache.set('test', createCacheEntry('ONE'));
@@ -268,7 +267,7 @@ describe('cachified', () => {
   });
 
   it('it throws when cache fallback is disabled and getting fresh value fails', async () => {
-    const cache = createTestCache();
+    const cache = new Map<string, CacheEntry<string>>();
 
     const value1 = await cachified({
       cache,
@@ -290,7 +289,8 @@ describe('cachified', () => {
   });
 
   it('handles cache write fails', async () => {
-    const cache = createTestCache();
+    const cache = new Map<string, CacheEntry<string>>();
+    const setMock = jest.spyOn(cache, 'set');
     const reporter = createReporter();
     let i = 0;
     const getValue = () =>
@@ -301,7 +301,7 @@ describe('cachified', () => {
         getFreshValue: () => `value-${i++}`,
       });
 
-    cache.set.mockImplementationOnce(() => {
+    setMock.mockImplementationOnce(() => {
       throw '🔥';
     });
     expect(await getValue()).toBe('value-0');
@@ -332,7 +332,7 @@ describe('cachified', () => {
   });
 
   it('gets fresh value when ttl is exceeded', async () => {
-    const cache = createTestCache();
+    const cache = new Map<string, CacheEntry<string>>();
     const reporter = createReporter();
     let i = 0;
     const getValue = () =>
@@ -387,7 +387,8 @@ describe('cachified', () => {
   });
 
   it('does not write to cache when ttl is exceeded before value is received', async () => {
-    const cache = createTestCache();
+    const cache = new Map<string, CacheEntry<string>>();
+    const setMock = jest.spyOn(cache, 'set');
     const reporter = createReporter();
 
     const value = await cachified({
@@ -402,7 +403,7 @@ describe('cachified', () => {
     });
 
     expect(value).toBe('ONE');
-    expect(cache.set).not.toHaveBeenCalled();
+    expect(setMock).not.toHaveBeenCalled();
     expect(report(reporter.mock.calls)).toMatchInlineSnapshot(`
     "1. init
        {key: 'test', metadata: {createdTime: 0, swv: 0, ttl: 5}}
@@ -418,10 +419,10 @@ describe('cachified', () => {
   });
 
   it('reuses pending fresh value for parallel calls', async () => {
-    const cache = createTestCache();
+    const cache = new Map<string, CacheEntry<string>>();
     const reporter = createReporter();
     const getValue = (
-      getFreshValue: CachifiedOptions<string, any>['getFreshValue'],
+      getFreshValue: CachifiedOptions<string>['getFreshValue'],
     ) =>
       cachified({
         cache,
@@ -460,9 +461,9 @@ describe('cachified', () => {
   });
 
   it('resolves earlier pending values with faster responses from later calls', async () => {
-    const cache = createTestCache();
+    const cache = new Map<string, CacheEntry<string>>();
     const getValue = (
-      getFreshValue: CachifiedOptions<string, any>['getFreshValue'],
+      getFreshValue: CachifiedOptions<string>['getFreshValue'],
     ) =>
       cachified({
         cache,
@@ -495,7 +496,7 @@ describe('cachified', () => {
   });
 
   it('uses stale cache while revalidating', async () => {
-    const cache = createTestCache();
+    const cache = new Map<string, CacheEntry<string>>();
     const reporter = createReporter();
     let i = 0;
     const getFreshValue = jest.fn(() => `value-${i++}`);
@@ -552,7 +553,7 @@ describe('cachified', () => {
   });
 
   it('supports infinite stale while revalidate', async () => {
-    const cache = createTestCache();
+    const cache = new Map<string, CacheEntry<string>>();
     let i = 0;
     const getFreshValue = jest.fn(() => `value-${i++}`);
     const getValue = () =>
@@ -580,7 +581,7 @@ describe('cachified', () => {
   });
 
   it('ignores errors when revalidating cache in the background', async () => {
-    const cache = createTestCache();
+    const cache = new Map<string, CacheEntry<string>>();
     const reporter = createReporter();
     let i = 0;
     const getFreshValue = jest.fn(() => `value-${i++}`);
@@ -636,7 +637,7 @@ describe('cachified', () => {
   });
 
   it('gets fresh value in case cached one does not meet value check', async () => {
-    const cache = createTestCache();
+    const cache = new Map<string, CacheEntry<string>>();
     const reporter = createReporter();
     const reporter2 = createReporter();
 
@@ -700,7 +701,7 @@ describe('cachified', () => {
   });
 
   it('supports batch-getting fresh values', async () => {
-    const cache = createTestCache();
+    const cache = new Map<string, CacheEntry<string>>();
     cache.set('test-2', createCacheEntry('YOLO!', { swv: null }));
     const getValues = jest.fn((indexes: number[]) =>
       indexes.map((i) => `value-${i}`),
@@ -730,9 +731,9 @@ describe('cachified', () => {
   });
 
   it('rejects all values when batch get fails', async () => {
-    const cache = createTestCache();
+    const cache = new Map<string, CacheEntry<string>>();
 
-    const batch = createBatch(() => {
+    const batch = createBatch<string, any>(() => {
       throw new Error('🥊');
     });
 
@@ -750,7 +751,7 @@ describe('cachified', () => {
   });
 
   it('supports manual submission of batch', async () => {
-    const cache = createTestCache();
+    const cache = new Map<string, CacheEntry<string>>();
     const getValues = jest.fn((indexes: (number | string)[]) =>
       indexes.map((i) => `value-${i}`),
     );
@@ -777,7 +778,7 @@ describe('cachified', () => {
 
   it('does not use faulty cache entries', async () => {
     expect.assertions(23);
-    const cache = createTestCache();
+    const cache = new Map<string, any>();
 
     const getValue = (reporter: CreateReporter<string>) =>
       cachified({
@@ -855,17 +856,6 @@ const noopLogger = {
     /* ¯\_(ツ)_/¯ */
   },
 };
-
-function createTestCache() {
-  const cache = new Map<string, any>();
-  return {
-    name: 'test-cache',
-    cache,
-    get: jest.fn(cache.get.bind(cache)),
-    set: jest.fn(cache.set.bind(cache)),
-    del: jest.fn(cache.delete.bind(cache)),
-  };
-}
 
 function delay(ms: number) {
   return new Promise((res) => setTimeout(res, ms));

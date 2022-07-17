@@ -3,8 +3,8 @@ import { getCacheEntry, CACHE_EMPTY } from './getCachedValue';
 import { shouldRefresh } from './shouldRefresh';
 import { Reporter } from './reporter';
 
-export async function getFreshValue<Value, CacheImpl extends Cache<Value>>(
-  options: CachifiedOptions<Value, CacheImpl>,
+export async function getFreshValue<Value>(
+  options: CachifiedOptions<Value>,
   metadata: CacheMetadata,
   report: Reporter<Value>,
 ): Promise<Value> {

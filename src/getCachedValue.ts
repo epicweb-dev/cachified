@@ -1,4 +1,4 @@
-import type { Cache, CachifiedOptions, CacheEntry } from './common';
+import { Cache, CachifiedOptions, CacheEntry } from './common';
 import { assertCacheEntry } from './assertCacheEntry';
 import { HANDLE } from './common';
 import { shouldRefresh } from './shouldRefresh';
@@ -6,8 +6,8 @@ import { cachified } from './cachified';
 import { Reporter } from './reporter';
 
 export const CACHE_EMPTY = Symbol();
-export async function getCacheEntry<Value, CacheImpl extends Cache<Value>>(
-  { key, cache }: CachifiedOptions<Value, CacheImpl>,
+export async function getCacheEntry<Value>(
+  { key, cache }: CachifiedOptions<Value>,
   report: Reporter<Value>,
 ): Promise<CacheEntry<Value> | typeof CACHE_EMPTY> {
   report({ name: 'getCachedValueStart' });
@@ -20,8 +20,8 @@ export async function getCacheEntry<Value, CacheImpl extends Cache<Value>>(
   return CACHE_EMPTY;
 }
 
-export async function getCachedValue<Value, CacheImpl extends Cache<Value>>(
-  options: CachifiedOptions<Value, CacheImpl>,
+export async function getCachedValue<Value>(
+  options: CachifiedOptions<Value>,
   report: Reporter<Value>,
 ): Promise<Value | typeof CACHE_EMPTY> {
   const {
@@ -82,13 +82,13 @@ export async function getCachedValue<Value, CacheImpl extends Cache<Value>>(
         const reason = typeof valueCheck === 'string' ? valueCheck : 'unknown';
         report({ name: 'checkCachedValueError', reason });
 
-        await cache.del(key);
+        await cache.delete(key);
       }
     }
   } catch (error: unknown) {
     report({ name: 'getCachedValueError', error });
 
-    await cache.del(key);
+    await cache.delete(key);
   }
 
   return CACHE_EMPTY;

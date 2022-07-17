@@ -18,13 +18,13 @@ export type Eventually<Value> =
   | Promise<Value | null | undefined>;
 
 export interface Cache<Value> {
-  name: string;
+  name?: string;
   get: (key: string) => Eventually<{
     metadata: CacheMetadata;
     value: Value;
   }>;
   set: (key: string, value: CacheEntry<Value>) => unknown | Promise<unknown>;
-  del: (key: string) => unknown | Promise<unknown>;
+  delete: (key: string) => unknown | Promise<unknown>;
 }
 
 export const HANDLE = Symbol();
@@ -33,9 +33,9 @@ export type GetFreshValue<Value> = {
   [HANDLE]?: () => void;
 };
 
-export interface CachifiedOptions<Value, CacheImpl extends Cache<Value>> {
+export interface CachifiedOptions<Value> {
   key: string;
-  cache: CacheImpl;
+  cache: Cache<Value>;
   getFreshValue: GetFreshValue<Value>;
   checkValue?: (value: unknown) => boolean | string;
   forceFresh?: boolean;

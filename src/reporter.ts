@@ -1,4 +1,4 @@
-import { CacheMetadata, CachifiedOptions } from './common';
+import { CacheMetadata, Context } from './common';
 
 export type GetFreshValueStartEvent = {
   name: 'getFreshValueStart';
@@ -98,6 +98,5 @@ export type CacheEvent<Value> =
 export type Reporter<Value> = (event: CacheEvent<Value>) => void;
 
 export type CreateReporter<Value> = (
-  options: Required<CachifiedOptions<Value>>,
-  metadata: CacheMetadata,
+  context: Omit<Context<Value>, 'report'>,
 ) => Reporter<Value>;

@@ -1,15 +1,15 @@
-import type { CachifiedOptions, Cache, CacheMetadata } from './common';
+import type { Context, CacheMetadata } from './common';
 import { getCacheEntry, CACHE_EMPTY } from './getCachedValue';
 import { shouldRefresh } from './shouldRefresh';
 import { Reporter } from './reporter';
 
 export async function getFreshValue<Value>(
-  options: Required<CachifiedOptions<Value>>,
+  context: Context<Value>,
   metadata: CacheMetadata,
   report: Reporter<Value>,
 ): Promise<Value> {
   const { fallbackToCache, key, getFreshValue, forceFresh, cache, checkValue } =
-    options;
+    context;
 
   let value: Value;
   try {
@@ -21,9 +21,12 @@ export async function getFreshValue<Value>(
 
     // in case a fresh value was forced (and errored) we might be able to
     // still get one from cache
-    if (fallbackToCache && forceFresh) {
-      const entry = await getCacheEntry(options, report);
-      if (entry === CACHE_EMPTY) {
+    if (forceFresh && fallbackToCache > 0) {
+      const entry = await getCacheEntry(context, report);
+      if (
+        entry === CACHE_EMPTY ||
+        entry.metadata.createdTime + fallbackToCache < Date.now()
+      ) {
         throw error;
       }
       value = entry.value;

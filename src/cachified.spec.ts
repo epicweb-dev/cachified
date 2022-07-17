@@ -2,6 +2,7 @@ import { format } from 'pretty-format';
 import {
   cachified,
   CachifiedOptions,
+  Context,
   createBatch,
   CreateReporter,
   CacheMetadata,
@@ -264,6 +265,26 @@ describe('cachified', () => {
     7. writeFreshValueSuccess
        {metadata: {createdTime: 0, swv: 0, ttl: null}, written: true}"
     `);
+  });
+
+  it('does not fall back to outdated cache', async () => {
+    const cache = new Map<string, CacheEntry<string>>();
+    const reporter = createReporter();
+
+    cache.set('test', createCacheEntry('ONE', { ttl: 5 }));
+    currentTime = 15;
+    const value = cachified({
+      cache,
+      key: 'test',
+      forceFresh: true,
+      reporter,
+      fallbackToCache: 10,
+      getFreshValue: () => {
+        throw '🤡';
+      },
+    });
+
+    await expect(value).rejects.toMatchInlineSnapshot(`"🤡"`);
   });
 
   it('it throws when cache fallback is disabled and getting fresh value fails', async () => {
@@ -850,12 +871,12 @@ function delay(ms: number) {
 }
 
 function createReporter() {
-  const reporter = jest.fn();
-  const creator = (options: CachifiedOptions<any>, metadata: CacheMetadata) => {
-    reporter({ name: 'init', key: options.key, metadata });
-    return reporter;
+  const report = jest.fn();
+  const creator = ({ key, metadata }: Omit<Context<any>, 'report'>) => {
+    report({ name: 'init', key, metadata });
+    return report;
   };
-  creator.mock = reporter.mock;
+  creator.mock = report.mock;
   return creator;
 }
 

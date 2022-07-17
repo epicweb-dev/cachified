@@ -3,6 +3,7 @@ export type {
   Cache,
   CacheEntry,
   CacheMetadata,
+  Context,
 } from './common';
 export * from './reporter';
 export { createBatch } from './createBatch';

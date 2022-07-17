@@ -1,4 +1,4 @@
-import { CachifiedOptions, CacheEntry } from './common';
+import { Context, CacheEntry } from './common';
 import { assertCacheEntry } from './assertCacheEntry';
 import { HANDLE } from './common';
 import { shouldRefresh } from './shouldRefresh';
@@ -7,7 +7,7 @@ import { Reporter } from './reporter';
 
 export const CACHE_EMPTY = Symbol();
 export async function getCacheEntry<Value>(
-  { key, cache }: Required<CachifiedOptions<Value>>,
+  { key, cache }: Context<Value>,
   report: Reporter<Value>,
 ): Promise<CacheEntry<Value> | typeof CACHE_EMPTY> {
   report({ name: 'getCachedValueStart' });
@@ -21,7 +21,7 @@ export async function getCacheEntry<Value>(
 }
 
 export async function getCachedValue<Value>(
-  options: Required<CachifiedOptions<Value>>,
+  context: Context<Value>,
   report: Reporter<Value>,
 ): Promise<Value | typeof CACHE_EMPTY> {
   const {
@@ -31,9 +31,9 @@ export async function getCachedValue<Value>(
     staleRefreshTimeout,
     checkValue,
     getFreshValue: { [HANDLE]: handle },
-  } = options;
+  } = context;
   try {
-    const cached = await getCacheEntry(options, report);
+    const cached = await getCacheEntry(context, report);
 
     if (cached === CACHE_EMPTY) {
       report({ name: 'getCachedValueEmpty' });
@@ -54,7 +54,7 @@ export async function getCachedValue<Value>(
       setTimeout(() => {
         report({ name: 'refreshValueStart' });
         void cachified({
-          ...options,
+          ...context,
           reporter: () => () => {},
           forceFresh: true,
           fallbackToCache: false,

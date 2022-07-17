@@ -1,4 +1,4 @@
-import { CreateReporter } from './reporter';
+import type { CreateReporter, Reporter } from './reporter';
 
 export interface CacheMetadata {
   createdTime: number;
@@ -39,24 +39,58 @@ export interface CachifiedOptions<Value> {
   getFreshValue: GetFreshValue<Value>;
   checkValue?: (value: unknown) => boolean | string;
   forceFresh?: boolean;
-  fallbackToCache?: boolean;
+  fallbackToCache?: boolean | number;
   reporter?: CreateReporter<Value>;
   ttl?: number;
   staleWhileRevalidate?: number;
   staleRefreshTimeout?: number;
 }
 
-export function applyDefaultOptions<Value>(
-  options: CachifiedOptions<Value>,
-): Required<CachifiedOptions<Value>> {
-  return {
-    reporter: () => () => {},
+export interface Context<Value>
+  extends Omit<
+    Required<CachifiedOptions<Value>>,
+    'fallbackToCache' | 'reporter'
+  > {
+  report: Reporter<Value>;
+  fallbackToCache: number;
+  metadata: CacheMetadata;
+}
+
+export function createContext<Value>({
+  fallbackToCache,
+  reporter,
+  ...options
+}: CachifiedOptions<Value>): Context<Value> {
+  const ttl = options.ttl ?? Infinity;
+  const staleWhileRevalidate = options.staleWhileRevalidate ?? 0;
+  const contextWithoutReport = {
     checkValue: () => true,
-    ttl: Infinity,
-    staleWhileRevalidate: 0,
-    fallbackToCache: true,
+    ttl,
+    staleWhileRevalidate,
+    fallbackToCache:
+      fallbackToCache === false
+        ? 0
+        : fallbackToCache === true || fallbackToCache === undefined
+        ? Infinity
+        : fallbackToCache,
     staleRefreshTimeout: 0,
     forceFresh: false,
     ...options,
+    metadata: {
+      ttl: ttl === Infinity ? null : ttl,
+      swv: staleWhileRevalidate === Infinity ? null : staleWhileRevalidate,
+      createdTime: Date.now(),
+    },
+  };
+
+  const report =
+    reporter?.(contextWithoutReport) ||
+    (() => {
+      /* ¯\_(ツ)_/¯ */
+    });
+
+  return {
+    ...contextWithoutReport,
+    report,
   };
 }

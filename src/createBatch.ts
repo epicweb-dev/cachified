@@ -27,25 +27,21 @@ export function createBatch<Value, Param>(
     res: (value: Value) => void,
     rej: (reason: unknown) => void,
   ][] = [];
-  let adds = 0;
-  let handled = 0;
+
+  let count = 0;
   let submitted = false;
+  const submission = new Deferred<void>();
+
   const checkSubmission = () => {
     if (submitted) {
       throw new Error('Can not add to batch after submission');
     }
   };
-  let resolveSubmission: () => void;
-  let rejectSubmission: (reason: unknown) => void;
-  const submissionP = new Promise<void>((res, rej) => {
-    resolveSubmission = res;
-    rejectSubmission = rej;
-  });
 
   const submit = async () => {
-    if (handled !== adds) {
+    if (count !== 0) {
       autoSubmit = true;
-      return submissionP;
+      return submission.promise;
     }
     checkSubmission();
     submitted = true;
@@ -54,28 +50,26 @@ export function createBatch<Value, Param>(
         getFreshValue(requests.map(([param]) => param)),
       );
       results.forEach((value, index) => requests[index][1](value));
-      resolveSubmission();
+      submission.resolve();
     } catch (err) {
       requests.forEach(([_, __, rej]) => rej(err));
-      rejectSubmission(err);
+      submission.resolve();
     }
   };
 
   const trySubmitting = () => {
-    handled++;
+    count--;
     if (autoSubmit === false) {
       return;
     }
-    submit().catch(() => {
-      /* ¯\_(ツ)_/¯ */
-    });
+    submit();
   };
 
   return {
     ...(autoSubmit === false ? { submit } : {}),
     add(param) {
       checkSubmission();
-      adds++;
+      count++;
       let handled = false;
 
       return Object.assign(
@@ -99,4 +93,20 @@ export function createBatch<Value, Param>(
       );
     },
   };
+}
+
+export class Deferred<Value> {
+  readonly promise: Promise<Value>;
+  // @ts-ignore
+  readonly resolve: (value: Value | Promise<Value>) => void;
+  // @ts-ignore
+  readonly reject: (reason: unknown) => void;
+  constructor() {
+    this.promise = new Promise((res, rej) => {
+      // @ts-ignore
+      this.resolve = res;
+      // @ts-ignore
+      this.reject = rej;
+    });
+  }
 }

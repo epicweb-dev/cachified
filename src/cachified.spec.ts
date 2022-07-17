@@ -1,3 +1,4 @@
+import { format } from 'pretty-format';
 import {
   cachified,
   CachifiedOptions,
@@ -7,7 +8,7 @@ import {
   CacheEvent,
   CacheEntry,
 } from './index';
-import { format } from 'pretty-format';
+import { Deferred } from './createBatch';
 
 describe('cachified', () => {
   let currentTime = 0;
@@ -833,24 +834,6 @@ describe('cachified', () => {
     expect(await getValue(() => () => {})).toBe('FOUR');
   });
 });
-
-class Deferred<Value> {
-  readonly promise: Promise<Value>;
-  private _res: any;
-  private _rej: any;
-  constructor() {
-    this.promise = new Promise((res, rej) => {
-      this._res = res;
-      this._rej = rej;
-    });
-  }
-  resolve(value: Value | Promise<Value>) {
-    this._res(value);
-  }
-  reject(reason: unknown) {
-    this._rej(reason);
-  }
-}
 
 const noopLogger = {
   log() {

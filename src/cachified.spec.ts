@@ -900,13 +900,15 @@ describe('verbose reporter', () => {
     await cachified({
       cache,
       key: 'test',
+      ttl: 50,
+      staleWhileRevalidate: Infinity,
       reporter: verboseReporter({ logger, performance: Date }),
       getFreshValue: () => 'VALUE',
     });
 
     expect(logger.print()).toMatchInlineSnapshot(`
     "ERROR: 'error with cache at test. Deleting the cache key and trying to get a fresh value.' [Error: 💥]
-    LOG: 'Updated the cache value for test.' 'Getting a fresh value for this took 0ms.' 'Caching for forever in Map.'"
+    LOG: 'Updated the cache value for test.' 'Getting a fresh value for this took 0ms.' 'Caching for forever (revalidation after 50ms) in Map.'"
     `);
   });
 
@@ -951,9 +953,11 @@ describe('verbose reporter', () => {
     );
   });
 
-  it('logs when writing to cache fails', async () => {
+  it('logs when writing to cache fails (using defaults)', async () => {
     const cache = new Map<string, CacheEntry<string>>();
-    const logger = createLogger();
+    const errorMock = jest.spyOn(console, 'error').mockImplementation(() => {
+      /* 🤫 */
+    });
     jest.spyOn(cache, 'set').mockImplementationOnce(() => {
       throw new Error('⚡️');
     });
@@ -961,13 +965,35 @@ describe('verbose reporter', () => {
     await cachified({
       cache,
       key: 'test',
-      reporter: verboseReporter({ logger, performance: Date }),
+      reporter: verboseReporter(),
       getFreshValue: () => 'ONE',
     });
 
-    expect(logger.print()).toMatchInlineSnapshot(
-      `"ERROR: 'error setting cache: test' [Error: ⚡️]"`,
-    );
+    expect(errorMock.mock.calls).toMatchInlineSnapshot(`
+    Array [
+      Array [
+        "error setting cache: test",
+        [Error: ⚡️],
+      ],
+    ]
+    `);
+  });
+
+  it('falls back to Date when performance is not globally available', async () => {
+    const backup = global.performance;
+    delete (global as any).performance;
+    const cache = new Map<string, CacheEntry<string>>();
+    const logger = createLogger();
+
+    await cachified({
+      cache,
+      key: 'test',
+      reporter: verboseReporter({ logger }),
+      getFreshValue: () => 'ONE',
+    });
+
+    (global as any).performance = backup;
+    expect(Date.now).toBeCalledTimes(3);
   });
 
   it('logs when fresh value does not meet value check', async () => {

@@ -38,7 +38,7 @@ export interface CachifiedOptions<Value, CacheImpl extends Cache<Value>> {
   cache: CacheImpl;
   getFreshValue: GetFreshValue<Value>;
   checkValue?: (value: unknown) => boolean | string;
-  forceFresh?: boolean | string;
+  forceFresh?: boolean;
   fallbackToCache?: boolean;
   reporter?: CreateReporter<Value>;
   ttl?: number;

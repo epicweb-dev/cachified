@@ -283,11 +283,10 @@ describe('cachified', () => {
     const cache = createTestCache();
     const reporter = createReporter();
     let i = 0;
-    const getValue = (forceFresh?: string) =>
+    const getValue = () =>
       cachified({
         cache,
         key: 'test',
-        forceFresh,
         reporter,
         getFreshValue: () => `value-${i++}`,
       });
@@ -320,26 +319,6 @@ describe('cachified', () => {
         {metadata: {createdTime: 0, swv: 0, ttl: null}, written: true}"
     `);
     expect(await getValue()).toBe('value-1');
-  });
-
-  // TODO: I don't see this as part of the package
-  it('does only get forced fresh values when key matches', async () => {
-    const cache = createTestCache();
-    let i = 0;
-    const getValue = (forceFresh?: string) =>
-      cachified({
-        cache,
-        key: 'test',
-        forceFresh,
-        getFreshValue: () => `value-${i++}`,
-      });
-
-    expect(await getValue()).toBe('value-0');
-    // does not force fresh response since test-2 does not match test
-    expect(await getValue('test-2')).toBe('value-0');
-
-    // test is now included
-    expect(await getValue('test-2,test')).toBe('value-1');
   });
 
   it('gets fresh value when ttl is exceeded', async () => {

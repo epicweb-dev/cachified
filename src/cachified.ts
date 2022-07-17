@@ -20,6 +20,7 @@ export async function cachified<Value, CacheImpl extends Cache<Value>>(
     key,
     cache,
     ttl,
+    forceFresh,
     staleWhileRevalidate = 0,
     reporter = () => () => {},
   } = options;
@@ -38,13 +39,6 @@ export async function cachified<Value, CacheImpl extends Cache<Value>>(
     string,
     CacheEntry<Promise<Value>> & { resolve: (value: Value) => void }
   > = pendingValuesByCache.get(cache)!;
-
-  // if forceFresh is a string, we'll only force fresh if the key is in the
-  // comma separated list.
-  const forceFresh =
-    typeof options.forceFresh === 'string'
-      ? options.forceFresh.split(',').includes(key)
-      : options.forceFresh;
 
   const cachedValue =
     (!forceFresh && (await getCachedValue(options, report))) || CACHE_EMPTY;

@@ -10,6 +10,15 @@ import {
 } from './index';
 import { Deferred } from './createBatch';
 
+jest.mock('./index', () => {
+  if (process.version.startsWith('v18')) {
+    return jest.requireActual('./index');
+  } else {
+    console.log('⚠️ Running Tests against dist/index.cjs');
+    return require('../dist/index.cjs');
+  }
+});
+
 describe('cachified', () => {
   let currentTime = 0;
   beforeEach(() => {

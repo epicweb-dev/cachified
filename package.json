@@ -9,8 +9,8 @@
     "prepare": "rm -rf dist && npm run build",
     "build": "npm run build:declarations && npm run build:esm && npm run build:cjs",
     "build:declarations": "tsc && rm dist/cachified.spec.d.ts",
-    "build:esm": "esbuild src/index.ts --outfile=dist/index.js --format=esm --target=es2020 --sourcemap --minify",
-    "build:cjs": "esbuild src/index.ts --outfile=dist/index.cjs --format=cjs --target=es2020 --sourcemap --minify",
+    "build:esm": "esbuild src/index.ts --outfile=dist/index.js --format=esm --bundle --target=es2020 --sourcemap --minify",
+    "build:cjs": "esbuild src/index.ts --outfile=dist/index.cjs --format=cjs --bundle --target=es2020 --sourcemap --minify",
     "test": "jest"
   },
   "repository": {

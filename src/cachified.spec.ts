@@ -8,6 +8,7 @@ import {
   CacheMetadata,
   CacheEvent,
   CacheEntry,
+  verboseReporter,
 } from './index';
 import { Deferred } from './createBatch';
 
@@ -20,13 +21,13 @@ jest.mock('./index', () => {
   }
 });
 
-describe('cachified', () => {
-  let currentTime = 0;
-  beforeEach(() => {
-    currentTime = 0;
-    jest.spyOn(Date, 'now').mockImplementation(() => currentTime);
-  });
+let currentTime = 0;
+beforeEach(() => {
+  currentTime = 0;
+  jest.spyOn(Date, 'now').mockImplementation(() => currentTime);
+});
 
+describe('cachified', () => {
   it('caches a value', async () => {
     const cache = new Map<string, CacheEntry<string>>();
     const reporter = createReporter();
@@ -866,6 +867,225 @@ describe('cachified', () => {
   });
 });
 
+describe('verbose reporter', () => {
+  it('logs when cached value is invalid', async () => {
+    const cache = new Map<string, CacheEntry<string>>();
+    const logger = createLogger();
+    cache.set('test', createCacheEntry('One'));
+
+    await cachified({
+      cache,
+      key: 'test',
+      checkValue: (v) => (v !== 'VALUE' ? '🚔' : true),
+      reporter: verboseReporter({ logger, performance: Date }),
+      getFreshValue: () => 'VALUE',
+    });
+
+    expect(logger.print()).toMatchInlineSnapshot(`
+    "WARN: 'check failed for cached value of test
+           Reason: 🚔.
+           Deleting the cache key and trying to get a fresh value.' {metadata: {createdTime: 0, swv: 0, ttl: null}, value: 'One'}
+    LOG: 'Updated the cache value for test.' 'Getting a fresh value for this took 0ms.' 'Caching for forever in Map.'"
+    `);
+  });
+
+  it('logs when getting a cached value fails', async () => {
+    const cache = new Map<string, CacheEntry<string>>();
+    const logger = createLogger();
+    const getMock = jest.spyOn(cache, 'get');
+    getMock.mockImplementationOnce(() => {
+      throw new Error('💥');
+    });
+
+    await cachified({
+      cache,
+      key: 'test',
+      reporter: verboseReporter({ logger, performance: Date }),
+      getFreshValue: () => 'VALUE',
+    });
+
+    expect(logger.print()).toMatchInlineSnapshot(`
+    "ERROR: 'error with cache at test. Deleting the cache key and trying to get a fresh value.' [Error: 💥]
+    LOG: 'Updated the cache value for test.' 'Getting a fresh value for this took 0ms.' 'Caching for forever in Map.'"
+    `);
+  });
+
+  it('logs when getting a fresh value fails', async () => {
+    const cache = new Map<string, CacheEntry<string>>();
+    const logger = createLogger();
+
+    await cachified({
+      cache,
+      key: 'test',
+      reporter: verboseReporter({ logger, performance: Date }),
+      getFreshValue: () => {
+        throw new Error('⁇');
+      },
+    }).catch(() => {
+      /* ¯\_(ツ)_/¯ */
+    });
+
+    expect(logger.print()).toMatchInlineSnapshot(
+      `"ERROR: 'getting a fresh value for test failed' {fallbackToCache: Infinity, forceFresh: false} [Error: ⁇]"`,
+    );
+  });
+
+  it('logs when fresh value is not written to cache', async () => {
+    const cache = new Map<string, CacheEntry<string>>();
+    const logger = createLogger();
+
+    await cachified({
+      cache,
+      key: 'test',
+      ttl: 5,
+      staleWhileRevalidate: 5,
+      reporter: verboseReporter({ logger, performance: Date }),
+      getFreshValue: () => {
+        currentTime = 20;
+        return 'ONE';
+      },
+    });
+
+    expect(logger.print()).toMatchInlineSnapshot(
+      `"LOG: 'Not updating the cache value for test.' 'Getting a fresh value for this took 20ms.' 'Thereby exceeding caching time of 5ms + 5ms stale'"`,
+    );
+  });
+
+  it('logs when writing to cache fails', async () => {
+    const cache = new Map<string, CacheEntry<string>>();
+    const logger = createLogger();
+    jest.spyOn(cache, 'set').mockImplementationOnce(() => {
+      throw new Error('⚡️');
+    });
+
+    await cachified({
+      cache,
+      key: 'test',
+      reporter: verboseReporter({ logger, performance: Date }),
+      getFreshValue: () => 'ONE',
+    });
+
+    expect(logger.print()).toMatchInlineSnapshot(
+      `"ERROR: 'error setting cache: test' [Error: ⚡️]"`,
+    );
+  });
+
+  it('logs when fresh value does not meet value check', async () => {
+    const cache = new Map<string, CacheEntry<string>>();
+    const logger = createLogger();
+
+    await cachified({
+      cache,
+      key: 'test',
+      reporter: verboseReporter({ logger, performance: Date }),
+      checkValue: () => false,
+      getFreshValue: () => 'ONE',
+    }).catch(() => {
+      /* 🤷 */
+    });
+
+    expect(logger.print()).toMatchInlineSnapshot(`
+    "ERROR: 'check failed for fresh value of test
+            Reason: unknown.' 'ONE'"
+    `);
+  });
+
+  it('logs when cache is successfully revalidated', async () => {
+    const cache = new Map<string, CacheEntry<string>>();
+    const logger = createLogger();
+    cache.set('test', createCacheEntry('ONE', { ttl: 5, swv: 10 }));
+    currentTime = 7;
+
+    await cachified({
+      cache,
+      key: 'test',
+      reporter: verboseReporter({ logger, performance: Date }),
+      getFreshValue: () => {
+        currentTime = 10;
+        return 'TWO';
+      },
+    });
+
+    await delay(0);
+    expect(logger.print()).toMatchInlineSnapshot(
+      `"LOG: 'Background refresh for test successful.' 'Getting a fresh value for this took 3ms.' 'Caching for forever in Map.'"`,
+    );
+  });
+
+  it('logs when cache revalidation fails', async () => {
+    const cache = new Map<string, CacheEntry<string>>();
+    const logger = createLogger();
+    cache.set('test', createCacheEntry('ONE', { ttl: 5, swv: 10 }));
+    currentTime = 7;
+
+    await cachified({
+      cache,
+      key: 'test',
+      reporter: verboseReporter({ logger, performance: Date }),
+      getFreshValue: () => {
+        currentTime = 10;
+        throw new Error('🧨');
+      },
+    });
+
+    await delay(0);
+    expect(logger.print()).toMatchInlineSnapshot(
+      `"LOG: 'Background refresh for test failed.' [Error: 🧨]"`,
+    );
+  });
+});
+
+function prettyPrint(value: any) {
+  return format(value, {
+    min: true,
+    plugins: [
+      {
+        test(val) {
+          return typeof val === 'string';
+        },
+        serialize(val, config, indentation, depth, refs) {
+          return refs[0] &&
+            typeof refs[0] === 'object' &&
+            Object.keys(refs[refs.length - 1] as any).includes(val)
+            ? val
+            : `'${val}'`;
+        },
+      },
+    ],
+  });
+}
+
+function createLogger() {
+  const log: string[] = [];
+
+  return {
+    log(...args: any[]) {
+      log.push(
+        args
+          .reduce((m, v) => `${m} ${prettyPrint(v)}`, 'LOG:')
+          .replace(/\n/g, '\n     '),
+      );
+    },
+    warn(...args: any[]) {
+      log.push(
+        args
+          .reduce((m, v) => `${m} ${prettyPrint(v)}`, 'WARN:')
+          .replace(/\n/g, '\n       '),
+      );
+    },
+    error(...args: any[]) {
+      log.push(
+        args
+          .reduce((m, v) => `${m} ${prettyPrint(v)}`, 'ERROR:')
+          .replace(/\n/g, '\n        '),
+      );
+    },
+    print() {
+      return log.join('\n');
+    },
+  };
+}
+
 function delay(ms: number) {
   return new Promise((res) => setTimeout(res, ms));
 }
@@ -899,26 +1119,10 @@ function report(calls: [event: CacheEvent<any>][]) {
       if (!payload || data === '{}') {
         return title;
       }
-      return `${title}\n${String('').padStart(totalCalls + 2, ' ')}${format(
-        payload,
-        {
-          min: true,
-          plugins: [
-            {
-              test(val) {
-                return typeof val === 'string';
-              },
-              serialize(val, config, indentation, depth, refs) {
-                return refs[0] &&
-                  typeof refs[0] === 'object' &&
-                  Object.keys(refs[refs.length - 1] as any).includes(val)
-                  ? val
-                  : `'${val}'`;
-              },
-            },
-          ],
-        },
-      )}`;
+      return `${title}\n${String('').padStart(
+        totalCalls + 2,
+        ' ',
+      )}${prettyPrint(payload)}`;
     })
     .join('\n');
 }

@@ -100,3 +100,128 @@ export type Reporter<Value> = (event: CacheEvent<Value>) => void;
 export type CreateReporter<Value> = (
   context: Omit<Context<Value>, 'report'>,
 ) => Reporter<Value>;
+
+const defaultFormatDuration = (ms: number) => `${Math.round(ms)}ms`;
+function formatCacheTime(
+  { ttl, swv }: CacheMetadata,
+  formatDuration: (duration: number) => string,
+) {
+  if (ttl == null || swv == null) {
+    return `forever${
+      ttl != null ? ` (revalidation after ${formatDuration(ttl)})` : ''
+    }`;
+  }
+
+  return `${formatDuration(ttl)} + ${formatDuration(swv)} stale`;
+}
+
+interface ReporterOpts {
+  formatDuration?: (ms: number) => string;
+  logger?: Pick<typeof console, 'log' | 'warn' | 'error'>;
+  performance?: Pick<typeof Date, 'now'>;
+}
+export function verboseReporter<Value>({
+  formatDuration = defaultFormatDuration,
+  logger = console,
+  performance = global.performance || Date,
+}: ReporterOpts = {}): CreateReporter<Value> {
+  return ({ key, fallbackToCache, forceFresh, metadata, cache }) => {
+    const cacheName =
+      cache.name ||
+      cache
+        .toString()
+        .toString()
+        .replace(/^\[object (.*?)]$/, '$1');
+    let cached: unknown;
+    let freshValue: unknown;
+    let getFreshValueStartTs: number;
+    let refreshValueStartTS: number;
+
+    return (event) => {
+      switch (event.name) {
+        case 'getCachedValueRead':
+          cached = event.entry;
+          break;
+        case 'checkCachedValueError':
+          logger.warn(
+            `check failed for cached value of ${key}\nReason: ${event.reason}.\nDeleting the cache key and trying to get a fresh value.`,
+            cached,
+          );
+          break;
+        case 'getCachedValueError':
+          logger.error(
+            `error with cache at ${key}. Deleting the cache key and trying to get a fresh value.`,
+            event.error,
+          );
+          break;
+        case 'getFreshValueError':
+          logger.error(
+            `getting a fresh value for ${key} failed`,
+            { fallbackToCache, forceFresh },
+            event.error,
+          );
+          break;
+        case 'getFreshValueStart':
+          getFreshValueStartTs = performance.now();
+          break;
+        case 'writeFreshValueSuccess': {
+          const totalTime = performance.now() - getFreshValueStartTs;
+          if (event.written) {
+            logger.log(
+              `Updated the cache value for ${key}.`,
+              `Getting a fresh value for this took ${formatDuration(
+                totalTime,
+              )}.`,
+              `Caching for ${formatCacheTime(
+                metadata,
+                formatDuration,
+              )} in ${cacheName}.`,
+            );
+          } else {
+            logger.log(
+              `Not updating the cache value for ${key}.`,
+              `Getting a fresh value for this took ${formatDuration(
+                totalTime,
+              )}.`,
+              `Thereby exceeding caching time of ${formatCacheTime(
+                metadata,
+                formatDuration,
+              )}`,
+            );
+          }
+          break;
+        }
+        case 'writeFreshValueError':
+          logger.error(`error setting cache: ${key}`, event.error);
+          break;
+        case 'getFreshValueSuccess':
+          freshValue = event.value;
+          break;
+        case 'checkFreshValueError':
+          logger.error(
+            `check failed for fresh value of ${key}\nReason: ${event.reason}.`,
+            freshValue,
+          );
+          break;
+        case 'refreshValueStart':
+          refreshValueStartTS = performance.now();
+          break;
+        case 'refreshValueSuccess':
+          logger.log(
+            `Background refresh for ${key} successful.`,
+            `Getting a fresh value for this took ${formatDuration(
+              performance.now() - refreshValueStartTS,
+            )}.`,
+            `Caching for ${formatCacheTime(
+              metadata,
+              formatDuration,
+            )} in ${cacheName}.`,
+          );
+          break;
+        case 'refreshValueError':
+          logger.log(`Background refresh for ${key} failed.`, event.error);
+          break;
+      }
+    };
+  };
+}

@@ -845,18 +845,6 @@ describe('cachified', () => {
   });
 });
 
-const noopLogger = {
-  log() {
-    /* ¯\_(ツ)_/¯ */
-  },
-  error() {
-    /* ¯\_(ツ)_/¯ */
-  },
-  warn() {
-    /* ¯\_(ツ)_/¯ */
-  },
-};
-
 function delay(ms: number) {
   return new Promise((res) => setTimeout(res, ms));
 }

@@ -98,6 +98,6 @@ export type CacheEvent<Value> =
 export type Reporter<Value> = (event: CacheEvent<Value>) => void;
 
 export type CreateReporter<Value> = (
-  options: CachifiedOptions<Value>,
+  options: Required<CachifiedOptions<Value>>,
   metadata: CacheMetadata,
 ) => Reporter<Value>;

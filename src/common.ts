@@ -45,3 +45,18 @@ export interface CachifiedOptions<Value> {
   staleWhileRevalidate?: number;
   staleRefreshTimeout?: number;
 }
+
+export function applyDefaultOptions<Value>(
+  options: CachifiedOptions<Value>,
+): Required<CachifiedOptions<Value>> {
+  return {
+    reporter: () => () => {},
+    checkValue: () => true,
+    ttl: Infinity,
+    staleWhileRevalidate: 0,
+    fallbackToCache: true,
+    staleRefreshTimeout: 0,
+    forceFresh: false,
+    ...options,
+  };
+}

@@ -4,18 +4,12 @@ import { shouldRefresh } from './shouldRefresh';
 import { Reporter } from './reporter';
 
 export async function getFreshValue<Value>(
-  options: CachifiedOptions<Value>,
+  options: Required<CachifiedOptions<Value>>,
   metadata: CacheMetadata,
   report: Reporter<Value>,
 ): Promise<Value> {
-  const {
-    fallbackToCache = true,
-    key,
-    getFreshValue,
-    forceFresh,
-    cache,
-    checkValue = () => true,
-  } = options;
+  const { fallbackToCache, key, getFreshValue, forceFresh, cache, checkValue } =
+    options;
 
   let value: Value;
   try {

@@ -45,6 +45,7 @@ jobs:
 
   publish:
     name: 🚀 Publish
+    needs: [test]
     runs-on: ubuntu-latest
     steps:
       - name: 🛑 Cancel Previous Runs

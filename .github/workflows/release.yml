@@ -1,4 +1,4 @@
-name: 🚀 Release
+name: 🚀 Publish
 on:
   push:
     branches:
@@ -44,7 +44,7 @@ jobs:
         if: ${{ matrix.coverage }}
 
   publish:
-    name: 🚀 Publish
+    name: ⚙️ Release
     needs: [test]
     runs-on: ubuntu-latest
     steps:
@@ -58,8 +58,8 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: 18
-      - name: Semantic Release
-        uses: cycjimmy/semantic-release-action@v3
+      - name: ⚙️ Semantic Release
+        run: npx semantic-release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}

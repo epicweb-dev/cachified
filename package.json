@@ -38,6 +38,7 @@
     "@types/node": "18.0.3",
     "esbuild": "0.14.49",
     "jest": "28.1.2",
+    "lru-cache": "7.13.1",
     "ts-jest": "28.0.5",
     "typescript": "4.7.4"
   }

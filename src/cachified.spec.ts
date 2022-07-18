@@ -1,4 +1,5 @@
 import { format } from 'pretty-format';
+import LRUCache from 'lru-cache';
 import {
   cachified,
   CachifiedOptions,
@@ -11,6 +12,7 @@ import {
   verboseReporter,
 } from './index';
 import { Deferred } from './createBatch';
+import { lruCacheAdapter } from './adapters';
 
 jest.mock('./index', () => {
   if (process.version.startsWith('v18')) {
@@ -864,6 +866,49 @@ describe('cachified', () => {
       metadata: { ttl: null, swr: null, createdTime: Date.now() },
     });
     expect(await getValue(() => () => {})).toBe('FOUR');
+  });
+
+  it('works with LRU cache', async () => {
+    const lru = new LRUCache<string, CacheEntry<string>>({ max: 5 });
+    const cache = lruCacheAdapter(lru);
+
+    const value = await cachified({
+      // works with LRU directly
+      cache: lru,
+      key: 'test',
+      getFreshValue() {
+        return 'ONE';
+      },
+    });
+
+    const value2 = await cachified({
+      cache,
+      key: 'test',
+      getFreshValue() {
+        throw new Error('🚧');
+      },
+    });
+
+    expect(value).toBe('ONE');
+    expect(value2).toBe('ONE');
+
+    cache.set('test-2', undefined as any);
+    cache.set('test-2', 'TWO' as any);
+
+    currentTime = 2;
+    const value3 = await cachified({
+      cache,
+      key: 'test-2',
+      getFreshValue() {
+        return 'THREE';
+      },
+    });
+
+    expect(value3).toBe('THREE');
+    expect(cache.get('test-2')).toEqual({
+      metadata: { createdTime: 2, swv: 0, ttl: null },
+      value: 'THREE',
+    });
   });
 });
 

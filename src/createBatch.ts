@@ -4,19 +4,19 @@ import { HANDLE } from './common';
 export type AddFn<Value, Param> = (param: Param) => GetFreshValue<Value>;
 
 export function createBatch<Value, Param>(
-  getFreshValue: (params: Param[]) => Value[] | Promise<Value[]>,
+  getFreshValues: (params: Param[]) => Value[] | Promise<Value[]>,
   autoSubmit: false,
 ): {
   submit: () => Promise<void>;
   add: AddFn<Value, Param>;
 };
 export function createBatch<Value, Param>(
-  getFreshValue: (params: Param[]) => Value[] | Promise<Value[]>,
+  getFreshValues: (params: Param[]) => Value[] | Promise<Value[]>,
 ): {
   add: AddFn<Value, Param>;
 };
 export function createBatch<Value, Param>(
-  getFreshValue: (params: Param[]) => Value[] | Promise<Value[]>,
+  getFreshValues: (params: Param[]) => Value[] | Promise<Value[]>,
   autoSubmit: boolean = true,
 ): {
   submit?: () => Promise<void>;
@@ -47,7 +47,7 @@ export function createBatch<Value, Param>(
     submitted = true;
     try {
       const results = await Promise.resolve(
-        getFreshValue(requests.map(([param]) => param)),
+        getFreshValues(requests.map(([param]) => param)),
       );
       results.forEach((value, index) => requests[index][1](value));
       submission.resolve();

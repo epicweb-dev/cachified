@@ -42,8 +42,8 @@ function getPi(): Promise<number> {
       return pi;
     },
     /* ~5 minutes until cache gets invalid
-       Optional, defaults to Infinity */,
-    ttl: 314_159
+       Optional, defaults to Infinity */
+    ttl: 314_159,
 
     /* Other optional options */
   });
@@ -175,11 +175,13 @@ call.
 ```ts
 import { cachified } from 'cachified';
 
-const value = await cachified({
-  /* ...{ cache, key, getFreshValue } */
-  ttl: 1000 * 60 /* One minute */,
-  staleWhileRevalidate: 1000 * 60 * 5 /* Five minutes */,
-});
+function getPi() {
+  return cachified({
+    /* ...{ cache, key, getFreshValue } */
+    ttl: 1000 * 60 /* One minute */,
+    staleWhileRevalidate: 1000 * 60 * 5 /* Five minutes */,
+  });
+}
 ```
 
 - **First Call**:  
@@ -192,3 +194,156 @@ const value = await cachified({
   background and its value is cached
 - **Fourth Call after 4.5 minutes**:  
   Cache is filled an valid. `getFreshValue` is not invoked, refreshed value is returned
+
+### Forcing fresh values and falling back to cache
+
+We can use `forceFresh` to get a fresh value regardless of the values ttl or stale while validate
+
+```ts
+import { cachified } from 'cachified';
+
+function getPi() {
+  return cachified({
+    /* ...{ cache, key, getFreshValue } */
+
+    forceFresh: Boolean(user.isAdmin),
+    /* when getting a forced fresh value fails we fall back to cached value
+       as long as it's not older then one hour */
+    fallbackToCache: 1000 * 60 * 60 /* one hour, defaults to Infinity */,
+  });
+}
+```
+
+### Type-safety
+
+In practice we can not be entirely sure that values the cache are of the types we assume.
+For example other parties could also write to the cache or code is changed while cache
+stays the same.
+
+```ts
+import type { CacheEntry } from 'cachified';
+import LRUCache from 'lru-cache';
+import { cachified } from 'cachified';
+
+const lru = new LRUCache<string, CacheEntry<string>>({ max: 1000 });
+
+lru.set('pi', { value: 'Invalid', metadata: { createdAt: Date.now() } });
+function getPi() {
+  return cachified({
+    /* ...{ getFreshValue } */
+    key: 'pi',
+    cache: lru,
+    checkValue(value: unknown) {
+      if (typeof value !== 'number') {
+        return 'Value must be a number';
+      } else if (!String(value).startsWith('3.14159')) {
+        return 'Value is not actually pi-ish';
+      }
+    },
+  });
+}
+```
+
+- **First Call**:  
+  Cache is not empty but value is invalid, `getFreshValue` gets invoked and and its value returned and cached
+- **Second Call**:  
+  Cache is filled an valid. `getFreshValue` is not invoked, cached value is returned
+
+> ℹ️ `checkValue` is also invoked with the return value of `getFreshValue`
+
+### Migrating Values
+
+When the format of cached values is changed during the apps lifetime they can
+be migrated on read like this:
+
+```ts
+import type { CacheEntry } from 'cachified';
+import LRUCache from 'lru-cache';
+import { cachified } from 'cachified';
+
+const lru = new LRUCache<string, CacheEntry<string>>({ max: 1000 });
+/* Let's assume we've previously stored values as string */
+lru.set('pi', { value: '3.14', metadata: { createdAt: Date.now() } });
+
+function getPi() {
+  return cachified({
+    /* ...{ getFreshValue } */
+    key: 'pi',
+    cache: lru,
+    checkValue(value, migrate) {
+      if (typeof value === 'string' && value.startsWith('3.14')) {
+        return migrate(parseFloat(value));
+      }
+      /* other validations... */
+    },
+  });
+}
+```
+
+- **First Call**:  
+  Cache is not empty but value can be migrated, `3.14` is returned and cached value is updated,
+  `getFreshValue` is not invoked
+- **Second Call**:  
+  Cache is filled an valid. `getFreshValue` is not invoked, cached value is returned
+
+### Batch requesting values
+
+In case multiple values can be requested in a batch action, but it's not
+clear which values are currently in cache we can use the `createBatch` helper
+
+```ts
+import type { CacheEntry } from 'cachified';
+import LRUCache from 'lru-cache';
+import { cachified, createBatch } from 'cachified';
+
+type Entry = any;
+const lru = new LRUCache<string, CacheEntry<string>>({ max: 1000 });
+
+function getEntries(ids: number[]): Promise<Entry[]> {
+  const batch = createBatch(getFreshValues);
+
+  return Promise.all(
+    ids.map((id) =>
+      cachified({
+        key: `entry-${id}`,
+        cache: lru,
+        getFreshValue: batch.add(id),
+      }),
+    ),
+  );
+}
+
+async function getFreshValues(idsThatAreNotInCache: number[]): Entry[] {
+  const res = await fetch(
+    `https://example.org/api?ids=${idsThatAreNotInCache.join(',')}`,
+  );
+  const data = await res.json();
+
+  return data as Entry[];
+}
+```
+
+- **First Call with getEntries(1,2)**:  
+  Caches for `entry-1` and `entry-2` are empty. `getFreshValues` is invoked with `[1,2]`,
+  its return values cached separately and returned
+- **Second Call with getEntries(2, 3)**:  
+  Cache for `entry-2` is valid but `entry-3` is empty. `getFreshValues` is invoked with `[3]`
+  and its return value cached. We'll return with one value from cache and one fresh value
+
+### Reporting
+
+A reporter might be passed to cachified to log caching events, we ship a reporter
+resembling the logging from [Kents implementation](https://github.com/kentcdodds/kentcdodds.com/blob/3efd0d3a07974ece0ee64d665f5e2159a97585df/app/utils/cache.server.ts)
+
+```ts
+import { cachified, verboseReporter } from 'cachified';
+
+function getPi() {
+  return cachified({
+    /* ...{ cache, key, getFreshValue } */
+    reporter: verboseReporter(),
+  });
+}
+```
+
+please refer to [the implementation of `verboseReporter`](https://github.com/Xiphe/cachified/blob/main/src/reporter.ts#L125) when you want to implement a custom reporter.

@@ -2,14 +2,14 @@ import type { Context, CacheMetadata } from './common';
 import { getCacheEntry, CACHE_EMPTY } from './getCachedValue';
 import { shouldRefresh } from './shouldRefresh';
 import { Reporter } from './reporter';
+import { checkValue } from './checkValue';
 
 export async function getFreshValue<Value>(
   context: Context<Value>,
   metadata: CacheMetadata,
   report: Reporter<Value>,
 ): Promise<Value> {
-  const { fallbackToCache, key, getFreshValue, forceFresh, cache, checkValue } =
-    context;
+  const { fallbackToCache, key, getFreshValue, forceFresh, cache } = context;
 
   let value: Value;
   try {
@@ -38,10 +38,9 @@ export async function getFreshValue<Value>(
     }
   }
 
-  const valueCheck = checkValue(value);
-  if (valueCheck !== true) {
-    const reason = typeof valueCheck === 'string' ? valueCheck : 'unknown';
-    report({ name: 'checkFreshValueError', reason });
+  const valueCheck = await checkValue(context, value);
+  if (!valueCheck.success) {
+    report({ name: 'checkFreshValueError', reason: valueCheck.reason });
 
     throw new Error(`check failed for fresh value of ${key}`);
   }
@@ -51,7 +50,12 @@ export async function getFreshValue<Value>(
     if (write) {
       await cache.set(key, { metadata, value });
     }
-    report({ name: 'writeFreshValueSuccess', metadata, written: write });
+    report({
+      name: 'writeFreshValueSuccess',
+      metadata,
+      migrated: valueCheck.migrated,
+      written: write,
+    });
   } catch (error: unknown) {
     report({ name: 'writeFreshValueError', error });
   }

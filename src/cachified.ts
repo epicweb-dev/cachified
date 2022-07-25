@@ -29,8 +29,12 @@ export async function cachified<Value>(
     CacheEntry<Promise<Value>> & { resolve: (value: Value) => void }
   > = pendingValuesByCache.get(cache)!;
 
+  const hasPendingValue = () => {
+    return pendingValues.has(key);
+  };
   const cachedValue =
-    (!forceFresh && (await getCachedValue(context, report))) || CACHE_EMPTY;
+    (!forceFresh && (await getCachedValue(context, report, hasPendingValue))) ||
+    CACHE_EMPTY;
   if (cachedValue !== CACHE_EMPTY) {
     return cachedValue;
   }

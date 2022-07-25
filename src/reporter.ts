@@ -29,6 +29,7 @@ export type WriteFreshValueSuccessEvent<Value> = {
    * Value might not actually be written to cache in case getting fresh
    * value took longer then ttl */
   written: boolean;
+  migrated: boolean;
 };
 export type WriteFreshValueErrorEvent = {
   name: 'writeFreshValueError';
@@ -53,6 +54,7 @@ export type GetCachedValueOutdatedEvent<Value> = {
 export type GetCachedValueSuccessEvent<Value> = {
   name: 'getCachedValueSuccess';
   value: Value;
+  migrated: boolean;
 };
 export type CheckCachedValueErrorEvent = {
   name: 'checkCachedValueError';

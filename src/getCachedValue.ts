@@ -4,6 +4,7 @@ import { HANDLE } from './common';
 import { shouldRefresh } from './shouldRefresh';
 import { cachified } from './cachified';
 import { Reporter } from './reporter';
+import { checkValue } from './checkValue';
 
 export const CACHE_EMPTY = Symbol();
 export async function getCacheEntry<Value>(
@@ -23,13 +24,14 @@ export async function getCacheEntry<Value>(
 export async function getCachedValue<Value>(
   context: Context<Value>,
   report: Reporter<Value>,
+  hasPendingValue: () => boolean,
 ): Promise<Value | typeof CACHE_EMPTY> {
   const {
     key,
     cache,
     staleWhileRevalidate,
     staleRefreshTimeout,
-    checkValue,
+    metadata,
     getFreshValue: { [HANDLE]: handle },
   } = context;
   try {
@@ -69,18 +71,45 @@ export async function getCachedValue<Value>(
     }
 
     if (!refresh || staleRefresh) {
-      const valueCheck = checkValue(cached.value);
-      if (valueCheck === true) {
-        report({ name: 'getCachedValueSuccess', value: cached.value });
+      const valueCheck = await checkValue(context, cached.value);
+      if (valueCheck.success) {
+        report({
+          name: 'getCachedValueSuccess',
+          value: valueCheck.value,
+          migrated: valueCheck.migrated,
+        });
         if (!staleRefresh) {
           // Notify batch that we handled this call using cached value
           handle?.();
         }
 
-        return cached.value;
+        if (valueCheck.migrated) {
+          setTimeout(async () => {
+            try {
+              const cached = await context.cache.get(context.key);
+
+              // Unless cached value was changed in the meantime or is about to
+              // change
+              if (
+                cached &&
+                cached.metadata.createdTime === metadata.createdTime &&
+                !hasPendingValue()
+              ) {
+                // update with migrated value
+                await context.cache.set(context.key, {
+                  ...cached,
+                  value: valueCheck.value,
+                });
+              }
+            } catch (err) {
+              /* ¯\_(ツ)_/¯ */
+            }
+          }, 0);
+        }
+
+        return valueCheck.value;
       } else {
-        const reason = typeof valueCheck === 'string' ? valueCheck : 'unknown';
-        report({ name: 'checkCachedValueError', reason });
+        report({ name: 'checkCachedValueError', reason: valueCheck.reason });
 
         await cache.delete(key);
       }

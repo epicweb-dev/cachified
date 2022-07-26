@@ -41,25 +41,32 @@ function getPi(): Promise<number> {
       }
       return pi;
     },
-    /* ~5 minutes until cache gets invalid
-       Optional, defaults to Infinity */
-    ttl: 314_159,
-
-    /* Other optional options */
+    // 5 minutes until cache gets invalid
+    // Optional, defaults to Infinity
+    ttl: 300_000,
   });
 }
+
+// Let's get through some calls of `getPi`:
+
+const pi1 = await getPi();
+console.log(pi1);
+// > logs 3.1415909530866903
+// Cache was empty, `getFreshValue` got invoked to generate a pi-ish number
+// that is now cached for 5 minutes
+
+// 2 minutes later
+const pi2 = await getPi();
+assert(pi1 === pi2);
+// Cache was filled an valid. `getFreshValue` was not invoked, previous number
+// is returned
+
+// 10 minutes later
+console.log(await getPi());
+// > logs 3.141598779280692
+// Cache timed out, `getFreshValue` got invoked to generate a new pi-ish number
+// that now replaces current cache entry and is cached for 5 minutes
 ```
-
-Let's get through some calls of `getPi`:
-
-- **First Call**:
-  Cache is empty, `getFreshValue` gets invoked to generate a pi-ish number that is
-  cached and returned
-- **Second Call after 2 minutes**:
-  Cache is filled an valid. `getFreshValue` is not invoked, previous number is returned
-- **Third Call after 10 minutes**:
-  Cache timed out, `getFreshValue` gets invoked to generate a new pi-ish number that
-  replaces current cache entry and is returned
 
 ## Options
 

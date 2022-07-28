@@ -79,6 +79,32 @@ describe('cachified', () => {
 `);
   });
 
+  it('immediately refreshes when ttl is 0', async () => {
+    const cache = new Map<string, CacheEntry<string>>();
+
+    const value = await cachified({
+      cache,
+      key: 'test',
+      ttl: 0,
+      getFreshValue() {
+        return 'ONE';
+      },
+    });
+
+    currentTime = 1;
+    const value2 = await cachified({
+      cache,
+      key: 'test',
+      ttl: 0,
+      getFreshValue() {
+        return 'TWO';
+      },
+    });
+
+    expect(value).toBe('ONE');
+    expect(value2).toBe('TWO');
+  });
+
   it('throws when no fresh value can be received for empty cache', async () => {
     const cache = new Map<string, CacheEntry<string>>();
     const reporter = createReporter();
@@ -960,7 +986,7 @@ describe('cachified', () => {
       await getValue(() => (event) => {
         if (event.name === 'getCachedValueError') {
           expect(event.error).toMatchInlineSnapshot(
-            `[Error: Cache entry for test does not have a value property]`,
+            `[Error: Cache entry for for test does not have a value property]`,
           );
         }
       }),

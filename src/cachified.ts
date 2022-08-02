@@ -32,9 +32,9 @@ export async function cachified<Value>(
   const hasPendingValue = () => {
     return pendingValues.has(key);
   };
-  const cachedValue =
-    (!forceFresh && (await getCachedValue(context, report, hasPendingValue))) ||
-    CACHE_EMPTY;
+  const cachedValue = !forceFresh
+    ? await getCachedValue(context, report, hasPendingValue)
+    : CACHE_EMPTY;
   if (cachedValue !== CACHE_EMPTY) {
     return cachedValue;
   }

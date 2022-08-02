@@ -105,6 +105,52 @@ describe('cachified', () => {
     expect(value2).toBe('TWO');
   });
 
+  it('caches undefined values', async () => {
+    const cache = new Map<string, CacheEntry<undefined>>();
+
+    const value = await cachified({
+      cache,
+      key: 'test',
+      getFreshValue() {
+        return undefined;
+      },
+    });
+
+    const value2 = await cachified({
+      cache,
+      key: 'test',
+      getFreshValue() {
+        throw new Error('🛸');
+      },
+    });
+
+    expect(value).toBe(undefined);
+    expect(value2).toBe(undefined);
+  });
+
+  it('caches null values', async () => {
+    const cache = new Map<string, CacheEntry<null>>();
+
+    const value = await cachified({
+      cache,
+      key: 'test',
+      getFreshValue() {
+        return null;
+      },
+    });
+
+    const value2 = await cachified({
+      cache,
+      key: 'test',
+      getFreshValue() {
+        throw new Error('🛸');
+      },
+    });
+
+    expect(value).toBe(null);
+    expect(value2).toBe(null);
+  });
+
   it('throws when no fresh value can be received for empty cache', async () => {
     const cache = new Map<string, CacheEntry<string>>();
     const reporter = createReporter();

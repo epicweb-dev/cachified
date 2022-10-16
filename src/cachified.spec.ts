@@ -1,5 +1,6 @@
 import { format } from 'pretty-format';
 import LRUCache from 'lru-cache';
+import { createClient as createRedis3Client } from 'redis-mock';
 import {
   cachified,
   CachifiedOptions,
@@ -10,9 +11,12 @@ import {
   CacheEvent,
   CacheEntry,
   verboseReporter,
+  lruCacheAdapter,
+  redis3CacheAdapter,
+  redisCacheAdapter,
+  RedisLikeCache,
 } from './index';
 import { Deferred } from './createBatch';
-import { lruCacheAdapter } from './adapters';
 
 jest.mock('./index', () => {
   if (process.version.startsWith('v18')) {
@@ -1111,6 +1115,151 @@ describe('cachified', () => {
       metadata: { createdTime: 2, swv: 0, ttl: null },
       value: 'THREE',
     });
+  });
+
+  it('works with redis4 cache', async () => {
+    const set = jest.fn();
+    const get = jest.fn();
+    const del = jest.fn();
+    const redis4: RedisLikeCache = { set, get, del };
+    const cache = redisCacheAdapter(redis4);
+
+    const ttlValue = await cachified({
+      cache,
+      key: 'test-3',
+      ttl: 1,
+      getFreshValue() {
+        return 'FOUR';
+      },
+    });
+    expect(ttlValue).toBe('FOUR');
+    expect(get).toHaveBeenCalledTimes(1);
+    expect(get).toHaveBeenCalledWith('test-3');
+    expect(set).toHaveBeenCalledTimes(1);
+    expect(set).toHaveBeenCalledWith(
+      'test-3',
+      JSON.stringify({
+        metadata: { ttl: 1, swv: 0, createdTime: 0 },
+        value: 'FOUR',
+      }),
+      { EXAT: 0.001 },
+    );
+
+    await cache.set('lel', undefined as any);
+
+    get.mockImplementationOnce(() =>
+      Promise.resolve(
+        JSON.stringify({
+          metadata: { ttl: null, swv: 0, createdTime: 0 },
+          value: 'FIVE',
+        }),
+      ),
+    );
+    const nextValue = await cachified({
+      cache,
+      key: 'test-3',
+      checkValue(value) {
+        return value !== 'FIVE';
+      },
+      getFreshValue() {
+        return 'SIX';
+      },
+    });
+    expect(nextValue).toBe('SIX');
+    expect(del).toHaveBeenCalledTimes(1);
+    expect(del).toHaveBeenCalledWith('test-3');
+  });
+
+  it('works with redis3 cache', async () => {
+    const redis = createRedis3Client();
+    const cache = redis3CacheAdapter(redis);
+
+    const value = await cachified({
+      cache,
+      key: 'test',
+      getFreshValue() {
+        return 'ONE';
+      },
+    });
+
+    expect(value).toBe('ONE');
+
+    await cache.set('test-2', 'TWO' as any);
+    expect(() => cache.set('test-2', undefined as any)).rejects.toThrow();
+
+    currentTime = 2;
+    const value3 = await cachified({
+      cache,
+      key: 'test-2',
+      getFreshValue() {
+        return 'THREE';
+      },
+    });
+    expect(value3).toBe('THREE');
+    expect(await cache.get('test-2')).toEqual({
+      metadata: { createdTime: 2, swv: 0, ttl: null },
+      value: 'THREE',
+    });
+
+    // handle redis failure
+    jest.spyOn(redis, 'get').mockImplementationOnce((_, cb) => {
+      cb!(new Error('Nope'), null);
+      return false;
+    });
+    await expect(() =>
+      cachified({
+        cache,
+        key: 'test-2',
+        getFreshValue() {
+          throw new Error('Nope Nope Nope');
+        },
+      }),
+    ).rejects.toThrowErrorMatchingInlineSnapshot(`"Nope Nope Nope"`);
+
+    // handle corrupt cache
+    await new Promise((res) => redis.set('test-3', '{{{', res));
+    await expect(() =>
+      cachified({
+        cache,
+        key: 'test-2',
+        getFreshValue() {
+          throw new Error('Broken');
+        },
+      }),
+    ).rejects.toThrowErrorMatchingInlineSnapshot(`"Broken"`);
+
+    // value is cleared from cache after ttl
+    const ttlValue = await cachified({
+      cache,
+      key: 'test-3',
+      ttl: 1,
+      getFreshValue() {
+        return 'FOUR';
+      },
+    });
+    expect(ttlValue).toBe('FOUR');
+
+    await delay(2);
+    expect(await cache.get('test-3')).toBe(null);
+
+    //  handles delete fails
+    jest.spyOn(redis, 'del').mockImplementationOnce((key, cb) => {
+      (cb as Function)(new Error('Nope'));
+      return false;
+    });
+
+    await expect(() =>
+      cachified({
+        cache,
+        checkValue() {
+          return false;
+        },
+        key: 'test',
+        getFreshValue() {
+          throw new Error('Boom');
+        },
+      }),
+    ).rejects.toThrowErrorMatchingInlineSnapshot(`"Boom"`);
   });
 });
 

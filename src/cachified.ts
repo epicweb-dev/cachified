@@ -1,10 +1,4 @@
-import {
-  CachifiedOptions,
-  Cache,
-  CacheEntry,
-  CacheMetadata,
-  createContext,
-} from './common';
+import { CachifiedOptions, Cache, CacheEntry, createContext } from './common';
 import { CACHE_EMPTY, getCachedValue } from './getCachedValue';
 import { getFreshValue } from './getFreshValue';
 import { shouldRefresh } from './shouldRefresh';

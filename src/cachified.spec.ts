@@ -1217,13 +1217,13 @@ describe('verbose reporter', () => {
     });
 
     expect(errorMock.mock.calls).toMatchInlineSnapshot(`
-    Array [
-      Array [
-        "error setting cache: test",
-        [Error: ⚡️],
-      ],
-    ]
-    `);
+[
+  [
+    "error setting cache: test",
+    [Error: ⚡️],
+  ],
+]
+`);
   });
 
   it('falls back to Date when performance is not globally available', async () => {

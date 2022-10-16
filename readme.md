@@ -36,6 +36,7 @@ function getPi(): Promise<number> {
     cache: lru,
     async getFreshValue() {
       let pi = 0;
+      // deliberately slow 🙈 
       while (!String(pi).startsWith('3.14159')) {
         pi = Math.random() * 10;
       }
@@ -171,6 +172,62 @@ interface CachifiedOptions<Value> {
 }
 ```
 
+## Adapters
+
+There are some build-in adapters for common caches, using them makes sure
+the used caches cleanup outdated values themselves.
+
+### Adapter for [lru-cache](https://www.npmjs.com/package/lru-cache)
+
+```ts
+import LRUCache from 'lru-cache';
+import { cachified, lruCacheAdapter } from 'cachified';
+
+const lru = new LRUCache<string, CacheEntry<string>>({ max: 1000 });
+const cache = lruCacheAdapter(lru);
+
+function getPi() {
+  return cachified({
+    cache,
+    /* ...{ key, getFreshValue } */
+  });
+}
+```
+
+### Adapter for [redis](https://www.npmjs.com/package/redis)
+
+```ts
+import { createClient } from 'redis';
+import { cachified, redisCacheAdapter } from 'cachified';
+
+const redis = createClient({ /* ...opts */ });
+const cache = redisCacheAdapter(redis);
+
+function getPi() {
+  return cachified({
+    cache,
+    /* ...{ key, getFreshValue } */
+  });
+}
+```
+
+### Adapter for [redis@3](https://www.npmjs.com/package/redis/v/3.1.2)
+
+```ts
+import { createClient } from 'redis';
+import { cachified, redis3CacheAdapter } from 'cachified';
+
+const redis = createClient({ /* ...opts */ });
+const cache = redis3CacheAdapter(redis);
+
+function getPi() {
+  return cachified({
+    cache,
+    /* ...{ key, getFreshValue } */
+  });
+}
+```
+
 ## Advanced Usage
 
 ### Stale while revalidate
@@ -223,7 +280,7 @@ function getPi() {
 
 ### Type-safety
 
-In practice we can not be entirely sure that values the cache are of the types we assume.
+In practice we can not be entirely sure that values from cache are of the types we assume.
 For example other parties could also write to the cache or code is changed while cache
 stays the same.
 

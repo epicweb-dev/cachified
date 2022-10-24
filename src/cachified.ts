@@ -6,7 +6,7 @@ import { shouldRefresh } from './shouldRefresh';
 // This is to prevent requesting multiple fresh values in parallel
 // while revalidating or getting first value
 // Keys are unique per cache but may be used by multiple caches
-const pendingValuesByCache = new WeakMap<Cache<any>, Map<string, any>>();
+const pendingValuesByCache = new WeakMap<Cache, Map<string, any>>();
 
 export async function cachified<Value>(
   options: CachifiedOptions<Value>,

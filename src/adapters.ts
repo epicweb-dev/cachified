@@ -1,16 +1,14 @@
 import { Cache, CacheEntry } from './common';
 
-export interface LRUishCache<Value> extends Omit<Cache<Value>, 'set'> {
+export interface LRUishCache extends Omit<Cache, 'set'> {
   set(
     key: string,
-    value: CacheEntry<Value>,
+    value: CacheEntry<unknown>,
     options?: { ttl?: number; start?: number },
   ): void;
 }
 
-export function lruCacheAdapter<Value>(
-  lruCache: LRUishCache<Value>,
-): Cache<Value> {
+export function lruCacheAdapter(lruCache: LRUishCache): Cache {
   return {
     name: lruCache.name || 'LRU',
     set(key, value) {
@@ -50,9 +48,7 @@ export interface Redis3LikeCache {
   multi(): Redis3Multi;
 }
 
-export function redis3CacheAdapter<Value>(
-  redisCache: Redis3LikeCache,
-): Cache<Value> {
+export function redis3CacheAdapter(redisCache: Redis3LikeCache): Cache {
   return {
     name: redisCache.name || 'Redis3',
     set(key, value) {
@@ -78,7 +74,7 @@ export function redis3CacheAdapter<Value>(
       });
     },
     get(key) {
-      return new Promise<CacheEntry<Value> | null | undefined>((res, rej) => {
+      return new Promise<CacheEntry | null | undefined>((res, rej) => {
         redisCache.get(key, (err, reply) => {
           if (err) {
             rej(err);
@@ -118,9 +114,7 @@ export interface RedisLikeCache {
   del(key: string): Promise<unknown>;
 }
 
-export function redisCacheAdapter<Value>(
-  redisCache: RedisLikeCache,
-): Cache<Value> {
+export function redisCacheAdapter(redisCache: RedisLikeCache): Cache {
   return {
     name: redisCache.name || 'Redis',
     set(key, value) {

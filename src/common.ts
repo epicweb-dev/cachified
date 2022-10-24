@@ -6,7 +6,7 @@ export interface CacheMetadata {
   swv?: number | null;
 }
 
-export interface CacheEntry<Value> {
+export interface CacheEntry<Value = unknown> {
   metadata: CacheMetadata;
   value: Value;
 }
@@ -17,10 +17,10 @@ export type Eventually<Value> =
   | undefined
   | Promise<Value | null | undefined>;
 
-export interface Cache<Value> {
+export interface Cache {
   name?: string;
-  get: (key: string) => Eventually<CacheEntry<Value>>;
-  set: (key: string, value: CacheEntry<Value>) => unknown | Promise<unknown>;
+  get: (key: string) => Eventually<CacheEntry<unknown>>;
+  set: (key: string, value: CacheEntry<unknown>) => unknown | Promise<unknown>;
   delete: (key: string) => unknown | Promise<unknown>;
 }
 
@@ -63,7 +63,7 @@ export interface CachifiedOptions<Value> {
    *
    * @type {Cache} Required
    */
-  cache: Cache<Value>;
+  cache: Cache;
   /**
    * This is called when no valid value is in cache for given key.
    * Basically what we would do if we wouldn't use a cache.

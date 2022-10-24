@@ -35,7 +35,7 @@ beforeEach(() => {
 
 describe('cachified', () => {
   it('caches a value', async () => {
-    const cache = new Map<string, CacheEntry<string>>();
+    const cache = new Map<string, CacheEntry>();
     const reporter = createReporter();
     const reporter2 = createReporter();
 
@@ -84,7 +84,7 @@ describe('cachified', () => {
   });
 
   it('immediately refreshes when ttl is 0', async () => {
-    const cache = new Map<string, CacheEntry<string>>();
+    const cache = new Map<string, CacheEntry>();
 
     const value = await cachified({
       cache,
@@ -110,7 +110,7 @@ describe('cachified', () => {
   });
 
   it('caches undefined values', async () => {
-    const cache = new Map<string, CacheEntry<undefined>>();
+    const cache = new Map<string, CacheEntry>();
 
     const value = await cachified({
       cache,
@@ -133,7 +133,7 @@ describe('cachified', () => {
   });
 
   it('caches null values', async () => {
-    const cache = new Map<string, CacheEntry<null>>();
+    const cache = new Map<string, CacheEntry>();
 
     const value = await cachified({
       cache,
@@ -156,7 +156,7 @@ describe('cachified', () => {
   });
 
   it('throws when no fresh value can be received for empty cache', async () => {
-    const cache = new Map<string, CacheEntry<string>>();
+    const cache = new Map<string, CacheEntry>();
     const reporter = createReporter();
 
     const value = cachified({
@@ -182,7 +182,7 @@ describe('cachified', () => {
   });
 
   it('throws when no forced fresh value can be received on empty cache', async () => {
-    const cache = new Map<string, CacheEntry<string>>();
+    const cache = new Map<string, CacheEntry>();
 
     const value = cachified({
       cache,
@@ -197,7 +197,7 @@ describe('cachified', () => {
   });
 
   it('throws when fresh value does not meet value check', async () => {
-    const cache = new Map<string, CacheEntry<string>>();
+    const cache = new Map<string, CacheEntry>();
     const reporter = createReporter();
     const reporter2 = createReporter();
 
@@ -259,7 +259,7 @@ describe('cachified', () => {
   });
 
   it('supports migrating cached values', async () => {
-    const cache = new Map<string, CacheEntry<string>>();
+    const cache = new Map<string, CacheEntry>();
     const reporter = createReporter();
 
     cache.set('weather', createCacheEntry('☁️'));
@@ -292,7 +292,7 @@ describe('cachified', () => {
   });
 
   it('supports async value checkers that throw', async () => {
-    const cache = new Map<string, CacheEntry<string>>();
+    const cache = new Map<string, CacheEntry>();
     const reporter = createReporter();
 
     const value = cachified({
@@ -347,7 +347,7 @@ describe('cachified', () => {
   });
 
   it('does not write migrated value to cache in case a new fresh value is already incoming', async () => {
-    const cache = new Map<string, CacheEntry<string>>();
+    const cache = new Map<string, CacheEntry>();
     const reporter = createReporter();
 
     cache.set('weather', createCacheEntry('☁️'));
@@ -389,7 +389,7 @@ describe('cachified', () => {
   });
 
   it('gets different values for different keys', async () => {
-    const cache = new Map<string, CacheEntry<string>>();
+    const cache = new Map<string, CacheEntry>();
 
     const value = await cachified({
       cache,
@@ -422,7 +422,7 @@ describe('cachified', () => {
   });
 
   it('gets fresh value when forced to', async () => {
-    const cache = new Map<string, CacheEntry<string>>();
+    const cache = new Map<string, CacheEntry>();
 
     const value = await cachified({
       cache,
@@ -445,7 +445,7 @@ describe('cachified', () => {
   });
 
   it('falls back to cache when forced fresh value fails', async () => {
-    const cache = new Map<string, CacheEntry<string>>();
+    const cache = new Map<string, CacheEntry>();
     const reporter = createReporter();
 
     cache.set('test', createCacheEntry('ONE'));
@@ -477,7 +477,7 @@ describe('cachified', () => {
   });
 
   it('does not fall back to outdated cache', async () => {
-    const cache = new Map<string, CacheEntry<string>>();
+    const cache = new Map<string, CacheEntry>();
     const reporter = createReporter();
 
     cache.set('test', createCacheEntry('ONE', { ttl: 5 }));
@@ -497,7 +497,7 @@ describe('cachified', () => {
   });
 
   it('it throws when cache fallback is disabled and getting fresh value fails', async () => {
-    const cache = new Map<string, CacheEntry<string>>();
+    const cache = new Map<string, CacheEntry>();
 
     const value1 = await cachified({
       cache,
@@ -519,7 +519,7 @@ describe('cachified', () => {
   });
 
   it('handles cache write fails', async () => {
-    const cache = new Map<string, CacheEntry<string>>();
+    const cache = new Map<string, CacheEntry>();
     const setMock = jest.spyOn(cache, 'set');
     const reporter = createReporter();
     let i = 0;
@@ -562,7 +562,7 @@ describe('cachified', () => {
   });
 
   it('gets fresh value when ttl is exceeded', async () => {
-    const cache = new Map<string, CacheEntry<string>>();
+    const cache = new Map<string, CacheEntry>();
     const reporter = createReporter();
     let i = 0;
     const getValue = () =>
@@ -617,7 +617,7 @@ describe('cachified', () => {
   });
 
   it('does not write to cache when ttl is exceeded before value is received', async () => {
-    const cache = new Map<string, CacheEntry<string>>();
+    const cache = new Map<string, CacheEntry>();
     const setMock = jest.spyOn(cache, 'set');
     const reporter = createReporter();
 
@@ -649,7 +649,7 @@ describe('cachified', () => {
   });
 
   it('reuses pending fresh value for parallel calls', async () => {
-    const cache = new Map<string, CacheEntry<string>>();
+    const cache = new Map<string, CacheEntry>();
     const reporter = createReporter();
     const getValue = (
       getFreshValue: CachifiedOptions<string>['getFreshValue'],
@@ -691,7 +691,7 @@ describe('cachified', () => {
   });
 
   it('resolves earlier pending values with faster responses from later calls', async () => {
-    const cache = new Map<string, CacheEntry<string>>();
+    const cache = new Map<string, CacheEntry>();
     const getValue = (
       getFreshValue: CachifiedOptions<string>['getFreshValue'],
     ) =>
@@ -726,7 +726,7 @@ describe('cachified', () => {
   });
 
   it('uses stale cache while revalidating', async () => {
-    const cache = new Map<string, CacheEntry<string>>();
+    const cache = new Map<string, CacheEntry>();
     const reporter = createReporter();
     let i = 0;
     const getFreshValue = jest.fn(() => `value-${i++}`);
@@ -783,7 +783,7 @@ describe('cachified', () => {
   });
 
   it('supports infinite stale while revalidate', async () => {
-    const cache = new Map<string, CacheEntry<string>>();
+    const cache = new Map<string, CacheEntry>();
     let i = 0;
     const getFreshValue = jest.fn(() => `value-${i++}`);
     const getValue = () =>
@@ -811,7 +811,7 @@ describe('cachified', () => {
   });
 
   it('ignores errors when revalidating cache in the background', async () => {
-    const cache = new Map<string, CacheEntry<string>>();
+    const cache = new Map<string, CacheEntry>();
     const reporter = createReporter();
     let i = 0;
     const getFreshValue = jest.fn(() => `value-${i++}`);
@@ -867,7 +867,7 @@ describe('cachified', () => {
   });
 
   it('gets fresh value in case cached one does not meet value check', async () => {
-    const cache = new Map<string, CacheEntry<string>>();
+    const cache = new Map<string, CacheEntry>();
     const reporter = createReporter();
     const reporter2 = createReporter();
 
@@ -931,7 +931,7 @@ describe('cachified', () => {
   });
 
   it('supports batch-getting fresh values', async () => {
-    const cache = new Map<string, CacheEntry<string>>();
+    const cache = new Map<string, CacheEntry>();
     cache.set('test-2', createCacheEntry('YOLO!', { swv: null }));
     const getValues = jest.fn((indexes: number[]) =>
       indexes.map((i) => `value-${i}`),
@@ -961,7 +961,7 @@ describe('cachified', () => {
   });
 
   it('rejects all values when batch get fails', async () => {
-    const cache = new Map<string, CacheEntry<string>>();
+    const cache = new Map<string, CacheEntry>();
 
     const batch = createBatch<string, any>(() => {
       throw new Error('🥊');
@@ -981,7 +981,7 @@ describe('cachified', () => {
   });
 
   it('supports manual submission of batch', async () => {
-    const cache = new Map<string, CacheEntry<string>>();
+    const cache = new Map<string, CacheEntry>();
     const getValues = jest.fn((indexes: (number | string)[]) =>
       indexes.map((i) => `value-${i}`),
     );
@@ -1075,7 +1075,7 @@ describe('cachified', () => {
   });
 
   it('works with LRU cache', async () => {
-    const lru = new LRUCache<string, CacheEntry<string>>({ max: 5 });
+    const lru = new LRUCache<string, CacheEntry>({ max: 5 });
     const cache = lruCacheAdapter(lru);
 
     const value = await cachified({
@@ -1265,7 +1265,7 @@ describe('cachified', () => {
 
 describe('verbose reporter', () => {
   it('logs when cached value is invalid', async () => {
-    const cache = new Map<string, CacheEntry<string>>();
+    const cache = new Map<string, CacheEntry>();
     const logger = createLogger();
     cache.set('test', createCacheEntry('One'));
 
@@ -1286,7 +1286,7 @@ describe('verbose reporter', () => {
   });
 
   it('logs when getting a cached value fails', async () => {
-    const cache = new Map<string, CacheEntry<string>>();
+    const cache = new Map<string, CacheEntry>();
     const logger = createLogger();
     const getMock = jest.spyOn(cache, 'get');
     getMock.mockImplementationOnce(() => {
@@ -1309,7 +1309,7 @@ describe('verbose reporter', () => {
   });
 
   it('logs when getting a fresh value fails', async () => {
-    const cache = new Map<string, CacheEntry<string>>();
+    const cache = new Map<string, CacheEntry>();
     const logger = createLogger();
 
     await cachified({
@@ -1329,7 +1329,7 @@ describe('verbose reporter', () => {
   });
 
   it('logs when fresh value is not written to cache', async () => {
-    const cache = new Map<string, CacheEntry<string>>();
+    const cache = new Map<string, CacheEntry>();
     const logger = createLogger();
 
     await cachified({
@@ -1350,7 +1350,7 @@ describe('verbose reporter', () => {
   });
 
   it('logs when writing to cache fails (using defaults)', async () => {
-    const cache = new Map<string, CacheEntry<string>>();
+    const cache = new Map<string, CacheEntry>();
     const errorMock = jest.spyOn(console, 'error').mockImplementation(() => {
       /* 🤫 */
     });
@@ -1378,7 +1378,7 @@ describe('verbose reporter', () => {
   it('falls back to Date when performance is not globally available', async () => {
     const backup = global.performance;
     delete (global as any).performance;
-    const cache = new Map<string, CacheEntry<string>>();
+    const cache = new Map<string, CacheEntry>();
     const logger = createLogger();
 
     await cachified({
@@ -1393,7 +1393,7 @@ describe('verbose reporter', () => {
   });
 
   it('logs when fresh value does not meet value check', async () => {
-    const cache = new Map<string, CacheEntry<string>>();
+    const cache = new Map<string, CacheEntry>();
     const logger = createLogger();
 
     await cachified({
@@ -1413,7 +1413,7 @@ describe('verbose reporter', () => {
   });
 
   it('logs when cache is successfully revalidated', async () => {
-    const cache = new Map<string, CacheEntry<string>>();
+    const cache = new Map<string, CacheEntry>();
     const logger = createLogger();
     cache.set('test', createCacheEntry('ONE', { ttl: 5, swv: 10 }));
     currentTime = 7;
@@ -1435,7 +1435,7 @@ describe('verbose reporter', () => {
   });
 
   it('logs when cache revalidation fails', async () => {
-    const cache = new Map<string, CacheEntry<string>>();
+    const cache = new Map<string, CacheEntry>();
     const logger = createLogger();
     cache.set('test', createCacheEntry('ONE', { ttl: 5, swv: 10 }));
     currentTime = 7;

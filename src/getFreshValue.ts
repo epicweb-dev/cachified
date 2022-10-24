@@ -11,11 +11,12 @@ export async function getFreshValue<Value>(
 ): Promise<Value> {
   const { fallbackToCache, key, getFreshValue, forceFresh, cache } = context;
 
-  let value: Value;
+  let value: unknown;
   try {
     report({ name: 'getFreshValueStart' });
-    value = await getFreshValue();
-    report({ name: 'getFreshValueSuccess', value });
+    const freshValue = await getFreshValue();
+    value = freshValue;
+    report({ name: 'getFreshValueSuccess', value: freshValue });
   } catch (error) {
     report({ name: 'getFreshValueError', error });
 
@@ -60,5 +61,5 @@ export async function getFreshValue<Value>(
     report({ name: 'writeFreshValueError', error });
   }
 
-  return value;
+  return valueCheck.value;
 }

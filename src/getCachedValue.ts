@@ -10,7 +10,7 @@ export const CACHE_EMPTY = Symbol();
 export async function getCacheEntry<Value>(
   { key, cache }: Context<Value>,
   report: Reporter<Value>,
-): Promise<CacheEntry<Value> | typeof CACHE_EMPTY> {
+): Promise<CacheEntry<unknown> | typeof CACHE_EMPTY> {
   report({ name: 'getCachedValueStart' });
   const cached = await cache.get(key);
   report({ name: 'getCachedValueRead', entry: cached });

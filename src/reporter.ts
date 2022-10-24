@@ -14,9 +14,9 @@ export type GetFreshValueErrorEvent = {
   name: 'getFreshValueError';
   error: unknown;
 };
-export type GetFreshValueCacheFallbackEvent<Value> = {
+export type GetFreshValueCacheFallbackEvent = {
   name: 'getFreshValueCacheFallback';
-  value: Value;
+  value: unknown;
 };
 export type CheckFreshValueErrorEvent<Value> = {
   name: 'checkFreshValueError';
@@ -46,9 +46,9 @@ export type GetCachedValueReadEvent = {
 export type GetCachedValueEmptyEvent = {
   name: 'getCachedValueEmpty';
 };
-export type GetCachedValueOutdatedEvent<Value> = {
+export type GetCachedValueOutdatedEvent = {
   name: 'getCachedValueOutdated';
-  value: Value;
+  value: unknown;
   metadata: CacheMetadata;
 };
 export type GetCachedValueSuccessEvent<Value> = {
@@ -82,14 +82,14 @@ export type CacheEvent<Value> =
   | GetFreshValueHookPendingEvent
   | GetFreshValueSuccessEvent<Value>
   | GetFreshValueErrorEvent
-  | GetFreshValueCacheFallbackEvent<Value>
+  | GetFreshValueCacheFallbackEvent
   | CheckFreshValueErrorEvent<Value>
   | WriteFreshValueSuccessEvent<Value>
   | WriteFreshValueErrorEvent
   | GetCachedValueStartEvent
   | GetCachedValueReadEvent
   | GetCachedValueEmptyEvent
-  | GetCachedValueOutdatedEvent<Value>
+  | GetCachedValueOutdatedEvent
   | GetCachedValueSuccessEvent<Value>
   | CheckCachedValueErrorEvent
   | GetCachedValueErrorEvent

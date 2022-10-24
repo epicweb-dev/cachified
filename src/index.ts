@@ -5,6 +5,7 @@ export type {
   CacheMetadata,
   Context,
 } from './common';
+export { staleWhileRevalidate, totalTtl } from './common';
 export * from './reporter';
 export * from './adapters';
 export { createBatch } from './createBatch';

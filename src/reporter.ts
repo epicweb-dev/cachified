@@ -1,4 +1,4 @@
-import { CacheMetadata, Context } from './common';
+import { CacheMetadata, Context, staleWhileRevalidate } from './common';
 
 export type GetFreshValueStartEvent = {
   name: 'getFreshValueStart';
@@ -105,16 +105,19 @@ export type CreateReporter<Value> = (
 
 const defaultFormatDuration = (ms: number) => `${Math.round(ms)}ms`;
 function formatCacheTime(
-  { ttl, swv }: CacheMetadata,
+  metadata: CacheMetadata,
   formatDuration: (duration: number) => string,
 ) {
-  if (ttl == null || swv == null) {
+  const swr = staleWhileRevalidate(metadata);
+  if (metadata.ttl == null || swr == null) {
     return `forever${
-      ttl != null ? ` (revalidation after ${formatDuration(ttl)})` : ''
+      metadata.ttl != null
+        ? ` (revalidation after ${formatDuration(metadata.ttl)})`
+        : ''
     }`;
   }
 
-  return `${formatDuration(ttl)} + ${formatDuration(swv)} stale`;
+  return `${formatDuration(metadata.ttl)} + ${formatDuration(swr)} stale`;
 }
 
 interface ReporterOpts {

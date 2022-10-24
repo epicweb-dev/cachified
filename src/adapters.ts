@@ -1,4 +1,4 @@
-import { Cache, CacheEntry } from './common';
+import { Cache, CacheEntry, totalTtl } from './common';
 
 export interface LRUishCache extends Omit<Cache, 'set'> {
   set(
@@ -12,10 +12,9 @@ export function lruCacheAdapter(lruCache: LRUishCache): Cache {
   return {
     name: lruCache.name || 'LRU',
     set(key, value) {
+      const ttl = totalTtl(value?.metadata);
       return lruCache.set(key, value, {
-        ttl:
-          (value?.metadata?.ttl || 0) + (value?.metadata?.swv || 0) ||
-          undefined,
+        ttl: ttl === Infinity ? undefined : ttl,
         start: value?.metadata?.createdTime,
       });
     },
@@ -53,7 +52,7 @@ export function redis3CacheAdapter(redisCache: Redis3LikeCache): Cache {
     name: redisCache.name || 'Redis3',
     set(key, value) {
       return new Promise<void>((res, rej) => {
-        const ttl = (value?.metadata?.ttl || 0) + (value?.metadata?.swv || 0);
+        const ttl = totalTtl(value?.metadata);
         const createdTime = value?.metadata?.createdTime;
         const cb = (err: unknown) => {
           if (err) {
@@ -62,7 +61,7 @@ export function redis3CacheAdapter(redisCache: Redis3LikeCache): Cache {
           res();
         };
 
-        if (ttl > 0 && typeof createdTime === 'number') {
+        if (ttl > 0 && ttl < Infinity && typeof createdTime === 'number') {
           redisCache
             .multi()
             .set(key, JSON.stringify(value))
@@ -118,15 +117,18 @@ export function redisCacheAdapter(redisCache: RedisLikeCache): Cache {
   return {
     name: redisCache.name || 'Redis',
     set(key, value) {
-      const ttl = (value?.metadata?.ttl || 0) + (value?.metadata?.swv || 0);
+      const ttl = totalTtl(value?.metadata);
       const createdTime = value?.metadata?.createdTime;
 
-      return redisCache.set(key, JSON.stringify(value), {
-        EXAT:
-          ttl > 0 && typeof createdTime === 'number'
-            ? (ttl + createdTime) / 1000
-            : 0,
-      });
+      return redisCache.set(
+        key,
+        JSON.stringify(value),
+        ttl > 0 && ttl < Infinity && typeof createdTime === 'number'
+          ? {
+              EXAT: (ttl + createdTime) / 1000,
+            }
+          : undefined,
+      );
     },
     async get(key) {
       const value = await redisCache.get(key);

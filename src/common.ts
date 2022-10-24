@@ -3,7 +3,9 @@ import type { CreateReporter, Reporter } from './reporter';
 export interface CacheMetadata {
   createdTime: number;
   ttl?: number | null;
-  swv?: number | null;
+  swr?: number | null;
+  /** @deprecated use swr instead */
+  readonly swv?: number | null;
 }
 
 export interface CacheEntry<Value = unknown> {
@@ -177,7 +179,7 @@ export function createContext<Value>({
     ...options,
     metadata: {
       ttl: ttl === Infinity ? null : ttl,
-      swv: staleWhileRevalidate === Infinity ? null : staleWhileRevalidate,
+      swr: staleWhileRevalidate === Infinity ? null : staleWhileRevalidate,
       createdTime: Date.now(),
     },
   };
@@ -192,4 +194,20 @@ export function createContext<Value>({
     ...contextWithoutReport,
     report,
   };
+}
+
+export function staleWhileRevalidate(metadata: CacheMetadata): number | null {
+  return (
+    (typeof metadata.swr === 'undefined' ? metadata.swv : metadata.swr) || null
+  );
+}
+
+export function totalTtl(metadata?: CacheMetadata): number {
+  if (!metadata) {
+    return 0;
+  }
+  if (metadata.ttl === null) {
+    return Infinity;
+  }
+  return (metadata.ttl || 0) + (staleWhileRevalidate(metadata) || 0);
 }

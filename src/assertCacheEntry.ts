@@ -1,5 +1,9 @@
 import type { CacheMetadata } from './common';
 
+export function logKey(key?: string) {
+  return key ? `for ${key} ` : '';
+}
+
 export function assertCacheEntry(
   entry: unknown,
   key?: string,
@@ -9,9 +13,9 @@ export function assertCacheEntry(
 } {
   if (!isRecord(entry)) {
     throw new Error(
-      `Cache entry ${
-        key ? `for ${key} ` : ''
-      }is not a cache entry object, it's a ${typeof entry}`,
+      `Cache entry ${logKey(
+        key,
+      )}is not a cache entry object, it's a ${typeof entry}`,
     );
   }
   if (
@@ -21,17 +25,13 @@ export function assertCacheEntry(
     (entry.metadata.swr != null && typeof entry.metadata.swr !== 'number')
   ) {
     throw new Error(
-      `Cache entry ${
-        key ? `for ${key} ` : ''
-      }does not have valid metadata property`,
+      `Cache entry ${logKey(key)}does not have valid metadata property`,
     );
   }
 
   if (!('value' in entry)) {
     throw new Error(
-      `Cache entry for ${
-        key ? `for ${key} ` : ''
-      }does not have a value property`,
+      `Cache entry for ${logKey(key)}does not have a value property`,
     );
   }
 }

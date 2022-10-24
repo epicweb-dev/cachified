@@ -18,6 +18,7 @@ import {
   totalTtl,
 } from './index';
 import { Deferred } from './createBatch';
+import { logKey } from './assertCacheEntry';
 
 jest.mock('./index', () => {
   if (process.version.startsWith('v18')) {
@@ -1249,7 +1250,9 @@ describe('cachified', () => {
       (cb as Function)(new Error('Nope2'), null);
       return false;
     });
-    expect(cache.delete('test-0')).rejects.toThrowErrorMatchingInlineSnapshot(`"Nope2"`);
+    expect(cache.delete('test-0')).rejects.toThrowErrorMatchingInlineSnapshot(
+      `"Nope2"`,
+    );
 
     // handle corrupt cache
     await new Promise((res) => redis.set('test-3', '{{{', res));
@@ -1587,5 +1590,11 @@ function report(calls: [event: CacheEvent<any>][]) {
 describe('totalTtl helper', () => {
   it('handles metadata without ttl gracefully', () => {
     expect(totalTtl({ createdTime: 0, swr: 5 })).toBe(5);
+  });
+});
+
+describe('internal logKey helper', () => {
+  it('falls back to empty string, when no key given', () => {
+    expect(logKey()).toBe('');
   });
 });

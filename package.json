@@ -42,7 +42,7 @@
   "homepage": "https://github.com/Xiphe/cachified#readme",
   "devDependencies": {
     "@types/jest": "29.2.1",
-    "@types/node": "18.11.8",
+    "@types/node": "18.11.10",
     "@types/redis-mock": "0.17.1",
     "esbuild": "0.15.12",
     "jest": "29.2.2",

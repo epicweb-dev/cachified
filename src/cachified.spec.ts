@@ -1171,7 +1171,7 @@ describe('cachified', () => {
         metadata: { ttl: 1, swr: 0, createdTime: 0 },
         value: 'FOUR',
       }),
-      { EXAT: 0.001 },
+      { EXAT: 1 },
     );
 
     await cache.set('lel', undefined as any);

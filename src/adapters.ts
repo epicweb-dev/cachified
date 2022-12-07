@@ -125,7 +125,7 @@ export function redisCacheAdapter(redisCache: RedisLikeCache): Cache {
         JSON.stringify(value),
         ttl > 0 && ttl < Infinity && typeof createdTime === 'number'
           ? {
-              EXAT: (ttl + createdTime) / 1000,
+              EXAT: Math.ceil((ttl + createdTime) / 1000),
             }
           : undefined,
       );

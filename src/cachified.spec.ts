@@ -692,6 +692,30 @@ describe('cachified', () => {
 `);
   });
 
+  it('does not use pending values after TTL is over', async () => {
+    const cache = new Map<string, CacheEntry>();
+    const reporter = createReporter();
+    const getValue = (
+      getFreshValue: CachifiedOptions<string>['getFreshValue'],
+    ) =>
+      cachified({
+        cache,
+        ttl: 5,
+        key: 'test',
+        reporter,
+        getFreshValue,
+      });
+
+    const d = new Deferred<string>();
+    const pValue1 = getValue(() => d.promise);
+    currentTime = 6;
+    const pValue2 = getValue(() => 'TWO');
+
+    d.resolve('ONE');
+    expect(await pValue1).toBe('ONE');
+    expect(await pValue2).toBe('TWO');
+  });
+
   it('resolves earlier pending values with faster responses from later calls', async () => {
     const cache = new Map<string, CacheEntry>();
     const getValue = (

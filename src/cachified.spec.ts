@@ -716,6 +716,32 @@ describe('cachified', () => {
     expect(await pValue2).toBe('TWO');
   });
 
+  it('supports extending ttl during getFreshValue operation', async () => {
+    const cache = new Map<string, CacheEntry>();
+    const reporter = createReporter();
+    const getValue = (
+      getFreshValue: CachifiedOptions<string>['getFreshValue'],
+    ) =>
+      cachified({
+        cache,
+        ttl: 5,
+        key: 'test',
+        reporter,
+        getFreshValue,
+      });
+
+    expect(
+      await getValue(({ metadata }) => {
+        metadata.ttl = 10;
+        return 'ONE';
+      }),
+    ).toBe('ONE');
+
+    currentTime = 6;
+
+    expect(await getValue(() => 'TWO')).toBe('ONE');
+  });
+
   it('resolves earlier pending values with faster responses from later calls', async () => {
     const cache = new Map<string, CacheEntry>();
     const getValue = (

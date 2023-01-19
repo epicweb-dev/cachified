@@ -26,9 +26,12 @@ export interface Cache {
   delete: (key: string) => unknown | Promise<unknown>;
 }
 
+interface GetFreshValueContext {
+  metadata: CacheMetadata;
+}
 export const HANDLE = Symbol();
 export type GetFreshValue<Value> = {
-  (): Promise<Value> | Value;
+  (context: GetFreshValueContext): Promise<Value> | Value;
   [HANDLE]?: () => void;
 };
 export const MIGRATED = Symbol();
@@ -72,7 +75,7 @@ export interface CachifiedOptions<Value> {
    *
    * Can be async and must return fresh value or throw.
    *
-   * @type {function(): Promise | Value} Required
+   * @type {function(context): Promise | Value} Required
    */
   getFreshValue: GetFreshValue<Value>;
   /**

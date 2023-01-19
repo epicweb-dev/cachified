@@ -58,6 +58,9 @@ export async function getCachedValue<Value>(
         void cachified({
           ...context,
           reporter: () => () => {},
+          getFreshValue({ metadata }) {
+            return context.getFreshValue({ metadata, background: true });
+          },
           forceFresh: true,
           fallbackToCache: false,
         })

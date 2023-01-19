@@ -96,7 +96,13 @@ interface CachifiedOptions<Value> {
    *
    * Can be async and must return fresh value or throw.
    *
-   * @type {function(): Promise | Value} Required
+   * context looks like this:
+   *  - context.metadata.ttl?: number
+   *  - context.metadata.swr?: number
+   *  - context.metadata.createdTime: number
+   *  - context.background: boolean
+   *
+   * @type {function(context: GetFreshValueContext): Promise | Value} Required
    */
   getFreshValue: GetFreshValue<Value>;
   /**

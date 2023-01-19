@@ -16,6 +16,7 @@ import {
   redisCacheAdapter,
   RedisLikeCache,
   totalTtl,
+  GetFreshValue,
 } from './index';
 import { Deferred } from './createBatch';
 import { logKey } from './assertCacheEntry';
@@ -803,7 +804,15 @@ describe('cachified', () => {
 
     // next call gets the revalidated response
     expect(await getValue()).toBe('value-1');
+
+    const getFreshValueCalls = getFreshValue.mock.calls as any as Parameters<
+      GetFreshValue<string>
+    >[];
     expect(getFreshValue).toHaveBeenCalledTimes(2);
+
+    // Does pass info if it's a stale while revalidate call
+    expect(getFreshValueCalls[0][0].background).toBe(false);
+    expect(getFreshValueCalls[1][0].background).toBe(true);
 
     // Does not deliver stale cache when swr is exceeded
     currentTime = 30;

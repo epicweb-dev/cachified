@@ -27,8 +27,8 @@ export interface Cache {
 }
 
 interface GetFreshValueContext {
-  metadata: CacheMetadata;
-  background: boolean;
+  readonly metadata: CacheMetadata;
+  readonly background: boolean;
 }
 export const HANDLE = Symbol();
 export type GetFreshValue<Value> = {

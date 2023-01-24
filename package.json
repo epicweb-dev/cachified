@@ -3,12 +3,12 @@
   "version": "0.0.0-development",
   "description": "neat wrapper for various caches",
   "main": "dist/index.cjs",
-  "module": "dist/index.js",
+  "module": "dist/index.mjs",
   "types": "dist/index.d.ts",
   "exports": {
     ".": {
       "require": "./dist/index.cjs",
-      "import": "./dist/index.js",
+      "import": "./dist/index.mjs",
       "types": "./dist/index.d.ts"
     }
   },
@@ -16,7 +16,7 @@
     "prepare": "rm -rf dist && npm run build",
     "build": "npm run build:declarations && npm run build:esm && npm run build:cjs",
     "build:declarations": "tsc && rm dist/cachified.spec.d.ts",
-    "build:esm": "esbuild src/index.ts --outfile=dist/index.js --format=esm --bundle --target=es2020 --sourcemap --minify",
+    "build:esm": "esbuild src/index.ts --outfile=dist/index.mjs --format=esm --bundle --target=es2020 --sourcemap --minify",
     "build:cjs": "esbuild src/index.ts --outfile=dist/index.cjs --format=cjs --bundle --target=es2016 --sourcemap",
     "test": "jest"
   },

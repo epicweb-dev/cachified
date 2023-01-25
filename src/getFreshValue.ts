@@ -14,7 +14,10 @@ export async function getFreshValue<Value>(
   let value: unknown;
   try {
     report({ name: 'getFreshValueStart' });
-    const freshValue = await getFreshValue();
+    const freshValue = await getFreshValue({
+      metadata: context.metadata,
+      background: false,
+    });
     value = freshValue;
     report({ name: 'getFreshValueSuccess', value: freshValue });
   } catch (error) {

@@ -16,6 +16,7 @@ import {
   redisCacheAdapter,
   RedisLikeCache,
   totalTtl,
+  GetFreshValue,
 } from './index';
 import { Deferred } from './createBatch';
 import { logKey } from './assertCacheEntry';
@@ -716,6 +717,56 @@ describe('cachified', () => {
     expect(await pValue2).toBe('TWO');
   });
 
+  it('supports extending ttl during getFreshValue operation', async () => {
+    const cache = new Map<string, CacheEntry>();
+    const reporter = createReporter();
+    const getValue = (
+      getFreshValue: CachifiedOptions<string>['getFreshValue'],
+    ) =>
+      cachified({
+        cache,
+        ttl: 5,
+        key: 'test',
+        reporter,
+        getFreshValue,
+      });
+
+    const firstCallMetaDataD = new Deferred<CacheMetadata>();
+
+    const d = new Deferred<string>();
+    const p1 = getValue(({ metadata }) => {
+      metadata.ttl = 10;
+      // Don't do this at home kids...
+      firstCallMetaDataD.resolve(metadata);
+      return d.promise;
+    });
+
+    const metadata = await firstCallMetaDataD.promise;
+
+    currentTime = 6;
+    // First call is still ongoing and initial ttl is over, still we exceeded
+    // the ttl in the call so this should not be called ever
+    const p2 = getValue(() => {
+      throw new Error('Never');
+    });
+
+    // Further exceeding the ttl and resolving first call
+    metadata!.ttl = 15;
+    d.resolve('ONE');
+
+    expect(await p1).toBe('ONE');
+    expect(await p2).toBe('ONE');
+
+    // now proceed to time between first and second modification of ttl
+    currentTime = 13;
+    // we still get the cached value from first call
+    expect(
+      await getValue(() => {
+        throw new Error('Never2');
+      }),
+    ).toBe('ONE');
+  });
+
   it('resolves earlier pending values with faster responses from later calls', async () => {
     const cache = new Map<string, CacheEntry>();
     const getValue = (
@@ -777,7 +828,15 @@ describe('cachified', () => {
 
     // next call gets the revalidated response
     expect(await getValue()).toBe('value-1');
+
+    const getFreshValueCalls = getFreshValue.mock.calls as any as Parameters<
+      GetFreshValue<string>
+    >[];
     expect(getFreshValue).toHaveBeenCalledTimes(2);
+
+    // Does pass info if it's a stale while revalidate call
+    expect(getFreshValueCalls[0][0].background).toBe(false);
+    expect(getFreshValueCalls[1][0].background).toBe(true);
 
     // Does not deliver stale cache when swr is exceeded
     currentTime = 30;

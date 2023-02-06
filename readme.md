@@ -98,6 +98,7 @@ function getUserById({ userId }: { userId: string }): Promise<User> {
 interface CachifiedOptions<Value> {
   /**
    * The key this value is cached by
+   * Must be unique for each value
    *
    * @type {string} Required
    */

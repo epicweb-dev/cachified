@@ -69,6 +69,29 @@ console.log(await getPi());
 // that now replaces current cache entry and is cached for 5 minutes
 ```
 
+### Caching with params
+```ts
+import type { CacheEntry } from 'cachified';
+import LRUCache from 'lru-cache';
+import { cachified } from 'cachified';
+
+// lru cache is not part of this package but a simple non-persistent cache
+const lru = new LRUCache<string, CacheEntry<string>>({ max: 1000 });
+
+function getUserById({ userId }: { userId: string }): Promise<User> {
+  return cachified({
+    // Use the userId as part of the key to make sure we cache the right user
+    key: `users_${userId}`,
+    cache: lru,
+    async getFreshValue() {
+     const response fetch(`https://example.com/users/${userId}`)
+    return response.json();
+    },
+    ttl: 300_000,
+  });
+}
+```
+
 ## Options
 
 ```ts

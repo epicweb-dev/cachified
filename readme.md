@@ -35,7 +35,7 @@ function getUserById({ userId }: { userId: string }): Promise<User> {
     key: `users_${userId}`,
     cache: lru,
     async getFreshValue() {
-      const response = fetch(`https://jsonplaceholder.typicode.com/users/${userId}`)
+      const response = await fetch(`https://jsonplaceholder.typicode.com/users/${userId}`);
       return response.json();
     },
     // 5 minutes until cache gets invalid

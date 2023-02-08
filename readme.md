@@ -30,17 +30,13 @@ import { cachified } from 'cachified';
 // lru cache is not part of this package but a simple non-persistent cache
 const lru = new LRUCache<string, CacheEntry<string>>({ max: 1000 });
 
-function getPi(): Promise<number> {
+function getUserById({ userId }: { userId: string }): Promise<User> {
   return cachified({
-    key: 'pi',
+    key: `users_${userId}`,
     cache: lru,
     async getFreshValue() {
-      let pi = 0;
-      // deliberately slow 🙈 
-      while (!String(pi).startsWith('3.14159')) {
-        pi = Math.random() * 10;
-      }
-      return pi;
+      const response = await fetch(`https://jsonplaceholder.typicode.com/users/${userId}`);
+      return response.json();
     },
     // 5 minutes until cache gets invalid
     // Optional, defaults to Infinity
@@ -48,24 +44,24 @@ function getPi(): Promise<number> {
   });
 }
 
-// Let's get through some calls of `getPi`:
+// Let's get through some calls of `getUserById`:
 
-const pi1 = await getPi();
-console.log(pi1);
-// > logs 3.1415909530866903
+const user = await getUserById('1');
+console.log(user);
+// > logs the user with ID 1
 // Cache was empty, `getFreshValue` got invoked to generate a pi-ish number
 // that is now cached for 5 minutes
 
 // 2 minutes later
-const pi2 = await getPi();
-assert(pi1 === pi2);
+const user = await getUserById('1');
+console.log(user);
 // Cache was filled an valid. `getFreshValue` was not invoked, previous number
 // is returned
 
 // 10 minutes later
-console.log(await getPi());
-// > logs 3.141598779280692
-// Cache timed out, `getFreshValue` got invoked to generate a new pi-ish number
+const user = await getUserById('1');
+// > logs the user with ID 1
+// Cache timed out, `getFreshValue` got invoked to fetch a fresh copy of the user
 // that now replaces current cache entry and is cached for 5 minutes
 ```
 
@@ -75,6 +71,7 @@ console.log(await getPi());
 interface CachifiedOptions<Value> {
   /**
    * The key this value is cached by
+   * Must be unique for each value
    *
    * @type {string} Required
    */

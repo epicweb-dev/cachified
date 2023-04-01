@@ -46,7 +46,7 @@
     "@types/redis-mock": "0.17.1",
     "esbuild": "0.17.10",
     "jest": "29.4.3",
-    "lru-cache": "7.18.1",
+    "lru-cache": "8.0.4",
     "redis4": "npm:redis@4.6.5",
     "redis-mock": "0.56.3",
     "ts-jest": "29.0.5",

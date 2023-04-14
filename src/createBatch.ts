@@ -1,7 +1,16 @@
-import type { GetFreshValue } from './common';
+import type { GetFreshValue, GetFreshValueContext } from './common';
 import { HANDLE } from './common';
 
-export type AddFn<Value, Param> = (param: Param) => GetFreshValue<Value>;
+type OnValueCallback<Value> = (
+  context: GetFreshValueContext & {
+    value: Value;
+  },
+) => void;
+
+export type AddFn<Value, Param> = (
+  param: Param,
+  onValue?: OnValueCallback<Value>,
+) => GetFreshValue<Value>;
 
 export function createBatch<Value, Param>(
   getFreshValues: (params: Param[]) => Value[] | Promise<Value[]>,
@@ -67,15 +76,22 @@ export function createBatch<Value, Param>(
 
   return {
     ...(autoSubmit === false ? { submit } : {}),
-    add(param) {
+    add(param, onValue) {
       checkSubmission();
       count++;
       let handled = false;
 
       return Object.assign(
-        () => {
+        (context: GetFreshValueContext) => {
           return new Promise<Value>((res, rej) => {
-            requests.push([param, res, rej]);
+            requests.push([
+              param,
+              (value) => {
+                onValue?.({ ...context, value });
+                res(value);
+              },
+              rej,
+            ]);
             if (!handled) {
               handled = true;
               trySubmitting();

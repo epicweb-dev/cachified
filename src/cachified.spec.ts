@@ -1144,6 +1144,56 @@ describe('cachified', () => {
     expect(getValues).toHaveBeenCalledWith([1, 'seven']);
   });
 
+  it('can edit metadata for single batch values', async () => {
+    const cache = new Map<string, CacheEntry>();
+    const getValues = jest.fn(() => [
+      'one',
+      null /* pretend this value does not exist (yet) */,
+    ]);
+    const batch = createBatch(getValues);
+
+    const values = await Promise.all(
+      [1, 2].map((index) =>
+        cachified({
+          cache,
+          key: `test-${index}`,
+          ttl: 5,
+          getFreshValue: batch.add(index, ({ value, metadata }) => {
+            if (value === null) {
+              metadata.ttl = -1;
+            }
+          }),
+        }),
+      ),
+    );
+
+    expect(values).toEqual(['one', null]);
+    expect(cache.get('test-1')).toEqual({
+      metadata: { createdTime: 0, swr: 0, ttl: 5 },
+      value: 'one',
+    });
+    /* Has not been written to cache */
+    expect(cache.get('test-2')).toBe(undefined);
+  });
+
+  it('does not invoke onValue when value comes from cache', async () => {
+    const cache = new Map<string, CacheEntry>();
+    const onValue = jest.fn();
+    const getValues = jest.fn(() => ['two']);
+    const batch = createBatch(getValues);
+
+    cache.set('test-1', createCacheEntry('one'));
+
+    const value = await cachified({
+      cache,
+      key: `test-1`,
+      getFreshValue: batch.add(1, onValue),
+    });
+
+    expect(value).toEqual('one');
+    expect(onValue).not.toHaveBeenCalled();
+  });
+
   it('does not use faulty cache entries', async () => {
     expect.assertions(23);
     const cache = new Map<string, any>();

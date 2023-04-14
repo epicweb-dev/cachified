@@ -353,6 +353,33 @@ function getPi() {
 - **Second Call**:  
   Cache is filled an valid. `getFreshValue` is not invoked, cached value is returned
 
+### Fine-tuning cache metadata based on fresh values
+
+There are scenarios where we want to change the cache time based on the fresh
+value (ref [#25](https://github.com/Xiphe/cachified/issues/25)). 
+For example when an API might either provide our data or `null` and in case we
+get an empty result we want to retry the API much faster.
+
+```ts
+import { cachified } from './src/index';
+
+const value: null | string = await cachified({
+  /* ...{ cache, key, ... } */
+
+  ttl: 60_000 /* Default cache of one minute... */,
+  getFreshValue(context) {
+    const valueFromApi: string | null = getValue();
+
+    if (valueFromApi === null) {
+      /* On an empty result, prevent caching */
+      context.metadata.ttl = -1;
+    }
+
+    return valueFromApi;
+  },
+});
+```
+
 ### Batch requesting values
 
 In case multiple values can be requested in a batch action, but it's not
@@ -363,10 +390,9 @@ import type { CacheEntry } from 'cachified';
 import LRUCache from 'lru-cache';
 import { cachified, createBatch } from 'cachified';
 
-type Entry = any;
 const lru = new LRUCache<string, CacheEntry<string>>({ max: 1000 });
 
-function getEntries(ids: number[]): Promise<Entry[]> {
+function getEntries(ids: number[]): Promise<(string | null)[]> {
   const batch = createBatch(getFreshValues);
 
   return Promise.all(
@@ -374,28 +400,36 @@ function getEntries(ids: number[]): Promise<Entry[]> {
       cachified({
         key: `entry-${id}`,
         cache: lru,
-        getFreshValue: batch.add(id),
+        ttl: 60_000,
+        getFreshValue: batch.add(
+          id,
+          /* onValue callback is optional but can be used to manipulate
+           * cache metadata based on the received value. (see section above) */
+          ({ value, ...context }) => {},
+        ),
       }),
     ),
   );
 }
 
-async function getFreshValues(idsThatAreNotInCache: number[]): Entry[] {
+async function getFreshValues(idsThatAreNotInCache: number[]) {
   const res = await fetch(
     `https://example.org/api?ids=${idsThatAreNotInCache.join(',')}`,
   );
   const data = await res.json();
 
-  return data as Entry[];
+  // Validate data here...
+
+  return data;
 }
 ```
 
-- **First Call with getEntries(1,2)**:  
-  Caches for `entry-1` and `entry-2` are empty. `getFreshValues` is invoked with `[1,2]`,
+- **First Call with getEntries([1, 2])**:  
+  Caches for `entry-1` and `entry-2` are empty. `getFreshValues` is invoked with `[1, 2]`,
   its return values cached separately and returned
-- **Second Call with getEntries(2, 3)**:  
+- **Second Call with getEntries([2, 3])**:  
   Cache for `entry-2` is valid but `entry-3` is empty. `getFreshValues` is invoked with `[3]`
-  and its return value cached. We'll return with one value from cache and one fresh value
+  and its return value cached. cachified returns with one value from cache and one fresh value
 
 ### Reporting
 

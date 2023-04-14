@@ -5,6 +5,7 @@ export type {
   CacheMetadata,
   Context,
   GetFreshValue,
+  GetFreshValueContext,
 } from './common';
 export { staleWhileRevalidate, totalTtl } from './common';
 export * from './reporter';

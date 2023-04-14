@@ -26,7 +26,7 @@ export interface Cache {
   delete: (key: string) => unknown | Promise<unknown>;
 }
 
-interface GetFreshValueContext {
+export interface GetFreshValueContext {
   readonly metadata: CacheMetadata;
   readonly background: boolean;
 }

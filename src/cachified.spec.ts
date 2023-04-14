@@ -763,6 +763,36 @@ describe('cachified', () => {
     ).toBe('ONE');
   });
 
+  it('supports bailing out of caching during getFreshValue operation', async () => {
+    const cache = new Map<string, CacheEntry>();
+    const reporter = createReporter();
+
+    const value = await cachified({
+      cache,
+      ttl: 5,
+      key: 'test',
+      reporter,
+      getFreshValue({ metadata }) {
+        metadata.ttl = -1;
+        return null;
+      },
+    });
+
+    expect(value).toBe(null);
+    expect(report(reporter.mock.calls)).toMatchInlineSnapshot(`
+      "1. init
+         {key: 'test', metadata: {createdTime: 0, swr: 0, ttl: -1}}
+      2. getCachedValueStart
+      3. getCachedValueRead
+      4. getCachedValueEmpty
+      5. getFreshValueStart
+      6. getFreshValueSuccess
+         {value: null}
+      7. writeFreshValueSuccess
+         {metadata: {createdTime: 0, swr: 0, ttl: -1}, migrated: false, written: false}"
+      `);
+  });
+
   it('resolves earlier pending values with faster responses from later calls', async () => {
     const cache = new Map<string, CacheEntry>();
     const getValue = (

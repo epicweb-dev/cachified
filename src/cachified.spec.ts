@@ -1192,6 +1192,7 @@ describe('cachified', () => {
 
     expect(value).toEqual('one');
     expect(onValue).not.toHaveBeenCalled();
+    expect(getValues).not.toHaveBeenCalled();
   });
 
   it('does not use faulty cache entries', async () => {

@@ -54,6 +54,12 @@ export function createBatch<Value, Param>(
     }
     checkSubmission();
     submitted = true;
+
+    if (requests.length === 0) {
+      submission.resolve();
+      return;
+    }
+
     try {
       const results = await Promise.resolve(
         getFreshValues(requests.map(([param]) => param)),

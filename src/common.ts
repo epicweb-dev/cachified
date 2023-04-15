@@ -37,7 +37,7 @@ export type GetFreshValue<Value> = {
 };
 export const MIGRATED = Symbol();
 export type MigratedValue<Value> = {
-  [MIGRATED]: true;
+  [MIGRATED]: boolean;
   value: Value;
 };
 
@@ -51,6 +51,13 @@ export type ValueCheckResultInvalid = false | string;
 export type ValueCheckResult<Value> =
   | ValueCheckResultOk<Value>
   | ValueCheckResultInvalid;
+export type CheckValue<Value> = (
+  value: unknown,
+  migrate: (value: Value, updateCache?: boolean) => MigratedValue<Value>,
+) => ValueCheckResult<Value> | Promise<ValueCheckResult<Value>>;
+export interface Schema<Value> {
+  parseAsync(value: unknown): Promise<Value>;
+}
 
 export interface CachifiedOptions<Value> {
   /**
@@ -119,10 +126,7 @@ export interface CachifiedOptions<Value> {
    *
    * @type {function(): boolean | undefined | string | MigratedValue} Optional, default makes no value check
    */
-  checkValue?: (
-    value: unknown,
-    migrate: (value: Value) => MigratedValue<Value>,
-  ) => ValueCheckResult<Value> | Promise<ValueCheckResult<Value>>;
+  checkValue?: CheckValue<Value> | Schema<Value>;
   /**
    * Set true to not even try reading the currently cached value
    *
@@ -161,8 +165,9 @@ export interface CachifiedOptions<Value> {
 export interface Context<Value>
   extends Omit<
     Required<CachifiedOptions<Value>>,
-    'fallbackToCache' | 'reporter'
+    'fallbackToCache' | 'reporter' | 'checkValue'
   > {
+  checkValue: CheckValue<Value>;
   report: Reporter<Value>;
   fallbackToCache: number;
   metadata: CacheMetadata;
@@ -171,12 +176,21 @@ export interface Context<Value>
 export function createContext<Value>({
   fallbackToCache,
   reporter,
+  checkValue,
   ...options
 }: CachifiedOptions<Value>): Context<Value> {
   const ttl = options.ttl ?? Infinity;
   const staleWhileRevalidate = options.staleWhileRevalidate ?? 0;
+  const checkValueCompat: CheckValue<Value> =
+    typeof checkValue === 'function'
+      ? checkValue
+      : typeof checkValue === 'object'
+      ? (value, migrate) =>
+          checkValue.parseAsync(value).then((v) => migrate(v, false))
+      : () => true;
+
   const contextWithoutReport = {
-    checkValue: () => true,
+    checkValue: checkValueCompat,
     ttl,
     staleWhileRevalidate,
     fallbackToCache:

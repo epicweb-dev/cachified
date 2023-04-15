@@ -112,7 +112,14 @@ export async function getCachedValue<Value>(
 
         return valueCheck.value;
       } else {
-        report({ name: 'checkCachedValueError', reason: valueCheck.reason });
+        report({ name: 'checkCachedValueErrorObj', reason: valueCheck.reason });
+        report({
+          name: 'checkCachedValueError',
+          reason:
+            valueCheck.reason instanceof Error
+              ? valueCheck.reason.message
+              : String(valueCheck.reason),
+        });
 
         await cache.delete(key);
       }

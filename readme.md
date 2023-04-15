@@ -318,6 +318,31 @@ function getPi() {
 
 > ℹ️ `checkValue` is also invoked with the return value of `getFreshValue`
 
+### Type-safety with [zod](https://github.com/colinhacks/zod)
+
+We can also use zod schemas to ensure correct types
+
+```ts
+import type { CacheEntry } from 'cachified';
+import LRUCache from 'lru-cache';
+import { cachified } from 'cachified';
+import z from 'zod';
+
+const lru = new LRUCache<string, CacheEntry<string>>({ max: 1000 });
+const userId = 1;
+
+const user = await cachified({
+  key: `user-${userId}`,
+  cache: lru,
+  checkValue: z.object({
+    email: z.string()
+  }),
+  getFreshValue() {
+    return getUserFromApi(userId)
+  }
+});
+```
+
 ### Migrating Values
 
 When the format of cached values is changed during the apps lifetime they can

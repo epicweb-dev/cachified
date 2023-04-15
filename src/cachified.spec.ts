@@ -1,5 +1,6 @@
 import LRUCache from 'lru-cache';
 import { createClient as createRedis3Client } from 'redis-mock';
+import z from 'zod';
 import {
   cachified,
   CachifiedOptions,
@@ -212,9 +213,12 @@ describe('cachified', () => {
       },
     });
 
-    await expect(value).rejects.toMatchInlineSnapshot(
-      `[Error: check failed for fresh value of test]`,
+    await expect(value).rejects.toThrowErrorMatchingInlineSnapshot(
+      `"check failed for fresh value of test"`,
     );
+    await expect(
+      value.catch((err) => err.cause),
+    ).resolves.toMatchInlineSnapshot(`"👮"`);
     expect(report(reporter.mock.calls)).toMatchInlineSnapshot(`
     "1. init
        {key: 'test', metadata: {createdTime: 0, swr: 0, ttl: null}}
@@ -224,7 +228,9 @@ describe('cachified', () => {
     5. getFreshValueStart
     6. getFreshValueSuccess
        {value: 'ONE'}
-    7. checkFreshValueError
+    7. checkFreshValueErrorObj
+       {reason: '👮'}
+    8. checkFreshValueError
        {reason: '👮'}"
     `);
 
@@ -240,8 +246,8 @@ describe('cachified', () => {
         return 'ONE';
       },
     });
-    await expect(value2).rejects.toMatchInlineSnapshot(
-      `[Error: check failed for fresh value of test]`,
+    await expect(value2).rejects.toThrowErrorMatchingInlineSnapshot(
+      `"check failed for fresh value of test"`,
     );
     expect(report(reporter2.mock.calls)).toMatchInlineSnapshot(`
     "1. init
@@ -252,9 +258,75 @@ describe('cachified', () => {
     5. getFreshValueStart
     6. getFreshValueSuccess
        {value: 'ONE'}
-    7. checkFreshValueError
+    7. checkFreshValueErrorObj
+       {reason: 'unknown'}
+    8. checkFreshValueError
        {reason: 'unknown'}"
     `);
+  });
+
+  it('supports zod validation with checkValue', async () => {
+    const cache = new Map<string, CacheEntry>();
+
+    const value = await cachified({
+      cache,
+      key: 'test',
+      checkValue: z.string(),
+      getFreshValue() {
+        return 'ONE';
+      },
+    });
+
+    expect(value).toBe('ONE');
+
+    const value2 = cachified({
+      cache,
+      key: 'test-2',
+      checkValue: z.string(),
+      getFreshValue() {
+        /* pretend API returns an unexpected value */
+        return 1 as unknown as string;
+      },
+    });
+
+    await expect(value2).rejects.toThrowErrorMatchingInlineSnapshot(
+      `"check failed for fresh value of test-2"`,
+    );
+    await expect(value2.catch((err) => err.cause)).resolves
+      .toMatchInlineSnapshot(`
+      [ZodError: [
+        {
+          "code": "invalid_type",
+          "expected": "string",
+          "received": "number",
+          "path": [],
+          "message": "Expected string, received number"
+        }
+      ]]
+    `);
+  });
+
+  /* I don't think this is a good idea, but it's possible */
+  it('supports zod transforms', async () => {
+    const cache = new Map<string, CacheEntry>();
+
+    const getValue = () =>
+      cachified({
+        cache,
+        key: 'test',
+        checkValue: z.string().transform((s) => s.toUpperCase()),
+        getFreshValue() {
+          return 'one';
+        },
+      });
+
+    expect(await getValue()).toBe('ONE');
+
+    /* Stores original value in cache */
+    expect(cache.get('test')?.value).toBe('one');
+
+    /* Gets transformed value from cache */
+    expect(await getValue()).toBe('ONE');
   });
 
   it('supports migrating cached values', async () => {
@@ -308,8 +380,8 @@ describe('cachified', () => {
       },
     });
 
-    await expect(value).rejects.toMatchInlineSnapshot(
-      `[Error: check failed for fresh value of weather]`,
+    await expect(value).rejects.toThrowErrorMatchingInlineSnapshot(
+      `"check failed for fresh value of weather"`,
     );
     expect(report(reporter.mock.calls)).toMatchInlineSnapshot(`
 "1. init
@@ -320,7 +392,9 @@ describe('cachified', () => {
 5. getFreshValueStart
 6. getFreshValueSuccess
    {value: '☁️'}
-7. checkFreshValueError
+7. checkFreshValueErrorObj
+   {reason: [Error: Bad Weather]}
+8. checkFreshValueError
    {reason: 'Bad Weather'}"
 `);
 
@@ -340,8 +414,8 @@ describe('cachified', () => {
       },
     });
 
-    await expect(value2).rejects.toMatchInlineSnapshot(
-      `[Error: check failed for fresh value of weather]`,
+    await expect(value2).rejects.toThrowErrorMatchingInlineSnapshot(
+      `"check failed for fresh value of weather"`,
     );
   });
 
@@ -1029,12 +1103,14 @@ describe('cachified', () => {
 2. getCachedValueStart
 3. getCachedValueRead
    {entry: {metadata: {createdTime: 0, swr: 0, ttl: null}, value: 'ONE'}}
-4. checkCachedValueError
+4. checkCachedValueErrorObj
    {reason: 'unknown'}
-5. getFreshValueStart
-6. getFreshValueSuccess
+5. checkCachedValueError
+   {reason: 'unknown'}
+6. getFreshValueStart
+7. getFreshValueSuccess
    {value: 'TWO'}
-7. writeFreshValueSuccess
+8. writeFreshValueSuccess
    {metadata: {createdTime: 0, swr: 0, ttl: null}, migrated: false, written: true}"
 `);
 
@@ -1058,12 +1134,14 @@ describe('cachified', () => {
 2. getCachedValueStart
 3. getCachedValueRead
    {entry: {metadata: {createdTime: 0, swr: 0, ttl: null}, value: 'ONE'}}
-4. checkCachedValueError
+4. checkCachedValueErrorObj
    {reason: '🖕'}
-5. getFreshValueStart
-6. getFreshValueSuccess
+5. checkCachedValueError
+   {reason: '🖕'}
+6. getFreshValueStart
+7. getFreshValueSuccess
    {value: 'TWO'}
-7. writeFreshValueSuccess
+8. writeFreshValueSuccess
    {metadata: {createdTime: 0, swr: 0, ttl: null}, migrated: false, written: true}"
 `);
   });

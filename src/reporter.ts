@@ -18,9 +18,14 @@ export type GetFreshValueCacheFallbackEvent = {
   name: 'getFreshValueCacheFallback';
   value: unknown;
 };
+/** @deprecated this event will be removed in favour of `CheckFreshValueErrorObjEvent` */
 export type CheckFreshValueErrorEvent<Value> = {
   name: 'checkFreshValueError';
   reason: string;
+};
+export type CheckFreshValueErrorObjEvent = {
+  name: 'checkFreshValueErrorObj';
+  reason: unknown;
 };
 export type WriteFreshValueSuccessEvent<Value> = {
   name: 'writeFreshValueSuccess';
@@ -56,9 +61,14 @@ export type GetCachedValueSuccessEvent<Value> = {
   value: Value;
   migrated: boolean;
 };
+/** @deprecated this event will be removed in favour of `CheckCachedValueErrorObjEvent` */
 export type CheckCachedValueErrorEvent = {
   name: 'checkCachedValueError';
   reason: string;
+};
+export type CheckCachedValueErrorObjEvent = {
+  name: 'checkCachedValueErrorObj';
+  reason: unknown;
 };
 export type GetCachedValueErrorEvent = {
   name: 'getCachedValueError';
@@ -84,6 +94,7 @@ export type CacheEvent<Value> =
   | GetFreshValueErrorEvent
   | GetFreshValueCacheFallbackEvent
   | CheckFreshValueErrorEvent<Value>
+  | CheckFreshValueErrorObjEvent
   | WriteFreshValueSuccessEvent<Value>
   | WriteFreshValueErrorEvent
   | GetCachedValueStartEvent
@@ -92,6 +103,7 @@ export type CacheEvent<Value> =
   | GetCachedValueOutdatedEvent
   | GetCachedValueSuccessEvent<Value>
   | CheckCachedValueErrorEvent
+  | CheckCachedValueErrorObjEvent
   | GetCachedValueErrorEvent
   | RefreshValueStartEvent
   | RefreshValueSuccessEvent<Value>

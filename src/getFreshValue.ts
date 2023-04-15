@@ -44,9 +44,18 @@ export async function getFreshValue<Value>(
 
   const valueCheck = await checkValue(context, value);
   if (!valueCheck.success) {
-    report({ name: 'checkFreshValueError', reason: valueCheck.reason });
+    report({ name: 'checkFreshValueErrorObj', reason: valueCheck.reason });
+    report({
+      name: 'checkFreshValueError',
+      reason:
+        valueCheck.reason instanceof Error
+          ? valueCheck.reason.message
+          : String(valueCheck.reason),
+    });
 
-    throw new Error(`check failed for fresh value of ${key}`);
+    throw new Error(`check failed for fresh value of ${key}`, {
+      cause: valueCheck.reason,
+    });
   }
 
   try {

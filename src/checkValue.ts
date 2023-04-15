@@ -6,13 +6,16 @@ export async function checkValue<Value>(
   value: unknown,
 ): Promise<
   | { success: true; value: Value; migrated: boolean }
-  | { success: false; reason: string }
+  | { success: false; reason: unknown }
 > {
   try {
-    const checkResponse = await context.checkValue(value, (value) => ({
-      [MIGRATED]: true,
+    const checkResponse = await context.checkValue(
       value,
-    }));
+      (value, updateCache = true) => ({
+        [MIGRATED]: updateCache,
+        value,
+      }),
+    );
 
     if (typeof checkResponse === 'string') {
       return { success: false, reason: checkResponse };
@@ -26,10 +29,10 @@ export async function checkValue<Value>(
       };
     }
 
-    if (checkResponse && checkResponse[MIGRATED] === true) {
+    if (checkResponse && Object.hasOwn(checkResponse, MIGRATED)) {
       return {
         success: true,
-        migrated: true,
+        migrated: checkResponse[MIGRATED],
         value: checkResponse.value,
       };
     }
@@ -38,7 +41,7 @@ export async function checkValue<Value>(
   } catch (err) {
     return {
       success: false,
-      reason: err instanceof Error ? err.message : String(err),
+      reason: err,
     };
   }
 }

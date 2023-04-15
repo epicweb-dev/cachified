@@ -161,6 +161,15 @@ export interface CachifiedOptions<Value> {
    */
   reporter?: CreateReporter<Value>;
 }
+/* When using a schema validator, a strongly typed getFreshValue is not required
+   and sometimes even sub-optimal */
+export type CachifiedOptionsWithSchema<Value> = Omit<
+  CachifiedOptions<Value>,
+  'checkValue' | 'getFreshValue'
+> & {
+  checkValue: Schema<Value>;
+  getFreshValue: GetFreshValue<unknown>;
+};
 
 export interface Context<Value>
   extends Omit<

@@ -285,7 +285,7 @@ describe('cachified', () => {
       checkValue: z.string(),
       getFreshValue() {
         /* pretend API returns an unexpected value */
-        return 1 as unknown as string;
+        return 1;
       },
     });
 

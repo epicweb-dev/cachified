@@ -1,4 +1,10 @@
-import { CachifiedOptions, Cache, CacheEntry, createContext } from './common';
+import {
+  CachifiedOptions,
+  CachifiedOptionsWithSchema,
+  Cache,
+  CacheEntry,
+  createContext,
+} from './common';
 import { CACHE_EMPTY, getCachedValue } from './getCachedValue';
 import { getFreshValue } from './getFreshValue';
 import { shouldRefresh } from './shouldRefresh';
@@ -8,6 +14,12 @@ import { shouldRefresh } from './shouldRefresh';
 // Keys are unique per cache but may be used by multiple caches
 const pendingValuesByCache = new WeakMap<Cache, Map<string, any>>();
 
+export async function cachified<Value>(
+  options: CachifiedOptionsWithSchema<Value>,
+): Promise<Value>;
+export async function cachified<Value>(
+  options: CachifiedOptions<Value>,
+): Promise<Value>;
 export async function cachified<Value>(
   options: CachifiedOptions<Value>,
 ): Promise<Value> {

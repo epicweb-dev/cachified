@@ -294,7 +294,8 @@ describe('cachified', () => {
       cache,
       key: 'test-2',
       checkValue: z.string(),
-      getFreshValue() {
+      /* manually setting unknown here leaves the type-checking to zod during runtime */
+      getFreshValue(): unknown {
         /* pretend API returns an unexpected value */
         return 1;
       },
@@ -326,19 +327,19 @@ describe('cachified', () => {
       cachified({
         cache,
         key: 'test',
-        checkValue: z.string().transform((s) => s.toUpperCase()),
+        checkValue: z.string().transform((s) => parseInt(s, 10)),
         getFreshValue() {
-          return 'one';
+          return '123';
         },
       });
 
-    expect(await getValue()).toBe('ONE');
+    expect(await getValue()).toBe(123);
 
     /* Stores original value in cache */
-    expect(cache.get('test')?.value).toBe('one');
+    expect(cache.get('test')?.value).toBe('123');
 
     /* Gets transformed value from cache */
-    expect(await getValue()).toBe('ONE');
+    expect(await getValue()).toBe(123);
   });
 
   it('supports migrating cached values', async () => {

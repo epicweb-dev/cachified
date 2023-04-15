@@ -55,7 +55,8 @@ export type CheckValue<Value> = (
   value: unknown,
   migrate: (value: Value, updateCache?: boolean) => MigratedValue<Value>,
 ) => ValueCheckResult<Value> | Promise<ValueCheckResult<Value>>;
-export interface Schema<Value> {
+export interface Schema<Value, InputValue> {
+  _input: InputValue;
   parseAsync(value: unknown): Promise<Value>;
 }
 
@@ -126,7 +127,7 @@ export interface CachifiedOptions<Value> {
    *
    * @type {function(): boolean | undefined | string | MigratedValue} Optional, default makes no value check
    */
-  checkValue?: CheckValue<Value> | Schema<Value>;
+  checkValue?: CheckValue<Value> | Schema<Value, unknown>;
   /**
    * Set true to not even try reading the currently cached value
    *
@@ -163,12 +164,12 @@ export interface CachifiedOptions<Value> {
 }
 /* When using a schema validator, a strongly typed getFreshValue is not required
    and sometimes even sub-optimal */
-export type CachifiedOptionsWithSchema<Value> = Omit<
+export type CachifiedOptionsWithSchema<Value, InternalValue> = Omit<
   CachifiedOptions<Value>,
   'checkValue' | 'getFreshValue'
 > & {
-  checkValue: Schema<Value>;
-  getFreshValue: GetFreshValue<unknown>;
+  checkValue: Schema<Value, InternalValue>;
+  getFreshValue: GetFreshValue<InternalValue>;
 };
 
 export interface Context<Value>

@@ -14,8 +14,8 @@ import { shouldRefresh } from './shouldRefresh';
 // Keys are unique per cache but may be used by multiple caches
 const pendingValuesByCache = new WeakMap<Cache, Map<string, any>>();
 
-export async function cachified<Value>(
-  options: CachifiedOptionsWithSchema<Value>,
+export async function cachified<Value, InternalValue>(
+  options: CachifiedOptionsWithSchema<Value, InternalValue>,
 ): Promise<Value>;
 export async function cachified<Value>(
   options: CachifiedOptions<Value>,

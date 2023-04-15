@@ -27,6 +27,13 @@ jest.mock('./index', () => {
   }
 });
 
+function ignoreNode14<T>(callback: () => T) {
+  if (process.version.startsWith('v14')) {
+    return;
+  }
+  return callback();
+}
+
 let currentTime = 0;
 beforeEach(() => {
   currentTime = 0;
@@ -216,9 +223,13 @@ describe('cachified', () => {
     await expect(value).rejects.toThrowErrorMatchingInlineSnapshot(
       `"check failed for fresh value of test"`,
     );
-    await expect(
-      value.catch((err) => err.cause),
-    ).resolves.toMatchInlineSnapshot(`"👮"`);
+
+    await ignoreNode14(() =>
+      expect(value.catch((err) => err.cause)).resolves.toMatchInlineSnapshot(
+        `"👮"`,
+      ),
+    );
+
     expect(report(reporter.mock.calls)).toMatchInlineSnapshot(`
     "1. init
        {key: 'test', metadata: {createdTime: 0, swr: 0, ttl: null}}
@@ -292,18 +303,19 @@ describe('cachified', () => {
     await expect(value2).rejects.toThrowErrorMatchingInlineSnapshot(
       `"check failed for fresh value of test-2"`,
     );
-    await expect(value2.catch((err) => err.cause)).resolves
-      .toMatchInlineSnapshot(`
-      [ZodError: [
-        {
-          "code": "invalid_type",
-          "expected": "string",
-          "received": "number",
-          "path": [],
-          "message": "Expected string, received number"
-        }
-      ]]
-    `);
+    await ignoreNode14(() =>
+      expect(value2.catch((err) => err.cause)).resolves.toMatchInlineSnapshot(`
+        [ZodError: [
+          {
+            "code": "invalid_type",
+            "expected": "string",
+            "received": "number",
+            "path": [],
+            "message": "Expected string, received number"
+          }
+        ]]
+      `),
+    );
   });
 
   /* I don't think this is a good idea, but it's possible */

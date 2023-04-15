@@ -29,7 +29,7 @@ export async function checkValue<Value>(
       };
     }
 
-    if (checkResponse && Object.hasOwn(checkResponse, MIGRATED)) {
+    if (checkResponse && typeof checkResponse[MIGRATED] === 'boolean') {
       return {
         success: true,
         migrated: checkResponse[MIGRATED],

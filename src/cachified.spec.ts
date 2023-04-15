@@ -289,10 +289,14 @@ describe('cachified', () => {
     });
 
     expect(value).toBe('ONE');
+  });
+
+  it('fails when zod-schema does not match fresh value', async () => {
+    const cache = new Map<string, CacheEntry>();
 
     const value2 = cachified({
       cache,
-      key: 'test-2',
+      key: 'test',
       checkValue: z.string(),
       /* manually setting unknown here leaves the type-checking to zod during runtime */
       getFreshValue(): unknown {
@@ -302,7 +306,7 @@ describe('cachified', () => {
     });
 
     await expect(value2).rejects.toThrowErrorMatchingInlineSnapshot(
-      `"check failed for fresh value of test-2"`,
+      `"check failed for fresh value of test"`,
     );
     await ignoreNode14(() =>
       expect(value2.catch((err) => err.cause)).resolves.toMatchInlineSnapshot(`
@@ -317,6 +321,23 @@ describe('cachified', () => {
         ]]
       `),
     );
+  });
+
+  it('fetches fresh value when zod-schema does not match cached value', async () => {
+    const cache = new Map<string, CacheEntry>();
+
+    cache.set('test', createCacheEntry(1));
+
+    const value = await cachified({
+      cache,
+      key: 'test',
+      checkValue: z.string(),
+      getFreshValue() {
+        return 'ONE';
+      },
+    });
+
+    expect(value).toBe('ONE');
   });
 
   /* I don't think this is a good idea, but it's possible */

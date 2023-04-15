@@ -15,7 +15,7 @@
   "scripts": {
     "prepare": "rm -rf dist && npm run build",
     "build": "npm run build:declarations && npm run build:esm && npm run build:cjs",
-    "build:declarations": "tsc && rm dist/cachified.spec.d.ts",
+    "build:declarations": "tsc && rm dist/*.spec.d.ts && rm dist/testHelpers.d.ts",
     "build:esm": "esbuild src/index.ts --outfile=dist/index.mjs --format=esm --bundle --target=es2020 --sourcemap --minify",
     "build:cjs": "esbuild src/index.ts --outfile=dist/index.cjs --format=cjs --bundle --target=es2016 --sourcemap",
     "test": "jest"

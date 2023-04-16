@@ -70,106 +70,118 @@ const user = await getUserById('1');
 ```ts
 interface CachifiedOptions<Value> {
   /**
+   * Required
+   *
    * The key this value is cached by
    * Must be unique for each value
-   *
-   * @type {string} Required
    */
   key: string;
   /**
+   * Required
+   *
    * Cache implementation to use
    *
    * Must conform with signature
    *  - set(key: string, value: object): void | Promise<void>
    *  - get(key: string): object | Promise<object>
    *  - delete(key: string): void | Promise<void>
-   *
-   * @type {Cache} Required
    */
-  cache: Cache<Value>;
+  cache: Cache;
   /**
-   * This is called when no valid value is in cache for given key.
-   * Basically what we would do if we wouldn't use a cache.
+   * Required
    *
-   * Can be async and must return fresh value or throw.
+   * Function that is called when no valid value is in cache for given key
+   * Basically what we would do if we wouldn't use a cache
    *
-   * context looks like this:
+   * Can be async and must return fresh value or throw
+   *
+   * receives context object as argument
    *  - context.metadata.ttl?: number
    *  - context.metadata.swr?: number
    *  - context.metadata.createdTime: number
    *  - context.background: boolean
-   *
-   * @type {function(context: GetFreshValueContext): Promise | Value} Required
    */
   getFreshValue: GetFreshValue<Value>;
   /**
-   * Time To Live; often also referred to as max age.
+   * Time To Live; often also referred to as max age
    *
    * Amount of milliseconds the value should stay in cache
    * before we get a fresh one
    *
-   * @type {number} Optional (Default: Infinity) - must be positive, can be infinite
+   * Must be positive, can be infinite
+   *
+   * Default: `Infinity`
    */
   ttl?: number;
   /**
    * Amount of milliseconds that a value with exceeded ttl is still returned
    * while a fresh value is refreshed in the background
    *
-   * @type {number} Optional (Default: 0) - must be positive, can be infinite
+   * Must be positive, can be infinite
+   *
+   * Default: `0`
    */
   staleWhileRevalidate?: number;
   /**
-   * Called for each fresh or cached value to check if it matches the
-   * typescript type.
+   * Validator that checks every cached and fresh value to ensure type safety
    *
-   * Value considered ok when returns:
-   *  - true
-   *  - migrate(newValue)
-   *  - undefined
-   *  - null
+   * Can be a zod schema or a custom validator function
+   *
+   * Value considered ok when:
+   *  - zod schema.parseAsync succeeds
+   *  - validator returns
+   *    - true
+   *    - migrate(newValue)
+   *    - undefined
+   *    - null
    *
    * Value considered bad when:
-   *  - returns false
-   *  - returns reason as string
-   *  - throws
+   *  - zod schema.parseAsync throws
+   *  - validator:
+   *    - returns false
+   *    - returns reason as string
+   *    - throws
    *
-   * @type {function(): boolean | undefined | string | MigratedValue} Optional, default makes no value check
+   * A validator function receives two arguments:
+   *  1. the value
+   *  2. a migrate callback, see https://github.com/Xiphe/cachified#migrating-values
+   *
+   * Default: `undefined` - no validation
    */
-  checkValue?: (
-    value: unknown,
-    migrate: (value: Value) => MigratedValue<Value>,
-  ) => ValueCheckResult<Value> | Promise<ValueCheckResult<Value>>;
+  checkValue?: CheckValue<Value> | Schema<Value, unknown>;
   /**
    * Set true to not even try reading the currently cached value
    *
    * Will write new value to cache even when cached value is
    * still valid.
    *
-   * @type {boolean} Optional (Default: false)
+   * Default: `false`
    */
   forceFresh?: boolean;
   /**
    * Weather of not to fall back to cache when getting a forced fresh value
-   * fails.
+   * fails
    *
-   * Can also be the maximum age in milliseconds that a fallback value might
-   * have
+   * Can also be a positive number as the maximum age in milliseconds that a
+   * fallback value might have
    *
-   * @type {boolean | number} Optional (Default: Infinity) - number must be positive
+   * Default: `Infinity`
    */
   fallbackToCache?: boolean | number;
   /**
    * Amount of time in milliseconds before revalidation of a stale
    * cache entry is started
    *
-   * @type {number} Optional (Default: 0) - must be positive and finite
+   * Must be positive and finite
+   *
+   * Default: `0`
    */
   staleRefreshTimeout?: number;
   /**
    * A reporter receives events during the runtime of
    * cachified and can be used for debugging and monitoring
    *
-   * @type {(context) => (event) => void} Optional, defaults to no reporting
+   * Default: `undefined` - no reporting
    */
   reporter?: CreateReporter<Value>;
 }

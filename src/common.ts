@@ -100,7 +100,8 @@ export interface CachifiedOptions<Value> {
    * Amount of milliseconds the value should stay in cache
    * before we get a fresh one
    *
-   * Must be positive, can be infinite
+   * Setting any negative value will disable caching
+   * Can be infinite
    *
    * Default: `Infinity`
    */
@@ -109,7 +110,7 @@ export interface CachifiedOptions<Value> {
    * Amount of milliseconds that a value with exceeded ttl is still returned
    * while a fresh value is refreshed in the background
    *
-   * Must be positive, can be infinite
+   * Should be positive, can be infinite
    *
    * Default: `0`
    */

@@ -90,6 +90,22 @@ describe('cachified', () => {
 `);
   });
 
+  it('does not cache a value when ttl is negative', async () => {
+    const cache = new Map<string, CacheEntry>();
+
+    const value = await cachified({
+      cache,
+      key: 'test',
+      ttl: -1,
+      getFreshValue() {
+        return 'ONE';
+      },
+    });
+
+    expect(value).toBe('ONE');
+    expect(cache.size).toBe(0);
+  });
+
   it('immediately refreshes when ttl is 0', async () => {
     const cache = new Map<string, CacheEntry>();
 
@@ -999,6 +1015,24 @@ describe('cachified', () => {
 13. refreshValueSuccess
     {value: 'value-1'}"
 `);
+  });
+
+  it('handles negative staleWhileRevalidate gracefully', async () => {
+    const cache = new Map<string, CacheEntry>();
+    let i = 0;
+    const getFreshValue = jest.fn(() => `value-${i++}`);
+    const getValue = () =>
+      cachified({
+        cache,
+        key: 'test',
+        ttl: 5,
+        staleWhileRevalidate: -1,
+        getFreshValue,
+      });
+
+    expect(await getValue()).toBe('value-0');
+    currentTime = 6;
+    expect(await getValue()).toBe('value-1');
   });
 
   it('falls back to deprecated swv when swr is not present', async () => {

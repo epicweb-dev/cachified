@@ -23,44 +23,43 @@ npm install cachified
 ## Usage
 
 ```ts
-import type { CacheEntry } from 'cachified';
 import LRUCache from 'lru-cache';
-import { cachified } from 'cachified';
+import { cachified, CacheEntry } from 'cachified';
 
-// lru cache is not part of this package but a simple non-persistent cache
+/* lru cache is not part of this package but a simple non-persistent cache */
 const lru = new LRUCache<string, CacheEntry<string>>({ max: 1000 });
 
-function getUserById({ userId }: { userId: string }): Promise<User> {
+function getUserById(userId: string) {
   return cachified({
-    key: `users_${userId}`,
+    key: `user-${userId}`,
     cache: lru,
     async getFreshValue() {
+      /* Normally we want to either use a type-safe API or `checkValue` but 
+         to keep this example simple we work with `any` */
       const response = await fetch(`https://jsonplaceholder.typicode.com/users/${userId}`);
       return response.json();
     },
-    // 5 minutes until cache gets invalid
-    // Optional, defaults to Infinity
+    /* 5 minutes until cache gets invalid
+     * Optional, defaults to Infinity */
     ttl: 300_000,
   });
 }
 
 // Let's get through some calls of `getUserById`:
 
-const user = await getUserById('1');
-console.log(user);
+console.log(await getUserById('1'));
 // > logs the user with ID 1
-// Cache was empty, `getFreshValue` got invoked to generate a pi-ish number
-// that is now cached for 5 minutes
+// Cache was empty, `getFreshValue` got invoked and fetched the user-data that 
+// is now cached for 5 minutes
 
 // 2 minutes later
-const user = await getUserById('1');
-console.log(user);
-// Cache was filled an valid. `getFreshValue` was not invoked, previous number
-// is returned
+console.log(await getUserById('1'));
+// > logs the exact same user-data
+// Cache was filled an valid. `getFreshValue` was not invoked
 
 // 10 minutes later
 const user = await getUserById('1');
-// > logs the user with ID 1
+// > logs the user with ID 1 that might have updated fields
 // Cache timed out, `getFreshValue` got invoked to fetch a fresh copy of the user
 // that now replaces current cache entry and is cached for 5 minutes
 ```
@@ -197,17 +196,15 @@ the used caches cleanup outdated values themselves.
 
 ```ts
 import LRUCache from 'lru-cache';
-import { cachified, lruCacheAdapter } from 'cachified';
+import { cachified, lruCacheAdapter, CacheEntry } from 'cachified';
 
 const lru = new LRUCache<string, CacheEntry<string>>({ max: 1000 });
 const cache = lruCacheAdapter(lru);
 
-function getPi() {
-  return cachified({
-    cache,
-    /* ...{ key, getFreshValue } */
-  });
-}
+const data = await cachified({
+  cache,
+  /* ...{ key, getFreshValue } */
+});
 ```
 
 ### Adapter for [redis](https://www.npmjs.com/package/redis)
@@ -219,12 +216,10 @@ import { cachified, redisCacheAdapter } from 'cachified';
 const redis = createClient({ /* ...opts */ });
 const cache = redisCacheAdapter(redis);
 
-function getPi() {
-  return cachified({
-    cache,
-    /* ...{ key, getFreshValue } */
-  });
-}
+const data = await cachified({
+  cache,
+  /* ...{ key, getFreshValue } */
+});
 ```
 
 ### Adapter for [redis@3](https://www.npmjs.com/package/redis/v/3.1.2)
@@ -236,12 +231,10 @@ import { cachified, redis3CacheAdapter } from 'cachified';
 const redis = createClient({ /* ...opts */ });
 const cache = redis3CacheAdapter(redis);
 
-function getPi() {
-  return cachified({
-    cache,
-    /* ...{ key, getFreshValue } */
-  });
-}
+const data = await cachified({
+  cache,
+  /* ...{ key, getFreshValue } */
+});
 ```
 
 ## Advanced Usage
@@ -255,9 +248,10 @@ call.
 ```ts
 import { cachified } from 'cachified';
 
-function getPi() {
+function getUserById(userId: string) {
   return cachified({
     /* ...{ cache, key, getFreshValue } */
+
     ttl: 1000 * 60 /* One minute */,
     staleWhileRevalidate: 1000 * 60 * 5 /* Five minutes */,
   });
@@ -282,16 +276,14 @@ We can use `forceFresh` to get a fresh value regardless of the values ttl or sta
 ```ts
 import { cachified } from 'cachified';
 
-function getPi() {
-  return cachified({
-    /* ...{ cache, key, getFreshValue } */
+const data = await cachified({
+  /* ...{ cache, key, getFreshValue } */
 
-    forceFresh: Boolean(user.isAdmin),
-    /* when getting a forced fresh value fails we fall back to cached value
-       as long as it's not older then one hour */
-    fallbackToCache: 1000 * 60 * 60 /* one hour, defaults to Infinity */,
-  });
-}
+  forceFresh: Boolean(user.isAdmin),
+  /* when getting a forced fresh value fails we fall back to cached value
+     as long as it's not older then one hour */
+  fallbackToCache: 1000 * 60 * 60 /* one hour, defaults to Infinity */,
+});
 ```
 
 ### Type-safety
@@ -307,18 +299,32 @@ import { cachified } from 'cachified';
 
 const lru = new LRUCache<string, CacheEntry<string>>({ max: 1000 });
 
-lru.set('pi', { value: 'Invalid', metadata: { createdAt: Date.now() } });
-function getPi() {
+/* Something bad happened and we have an invalid cache entry... */
+lru.set('user-1', { value: 'Invalid', metadata: { createdAt: Date.now() } });
+
+
+function getUserById(userId: string) {
   return cachified({
     /* ...{ getFreshValue } */
-    key: 'pi',
+    key: `user-${userId}`,
     cache: lru,
     checkValue(value: unknown) {
-      if (typeof value !== 'number') {
-        return 'Value must be a number';
-      } else if (!String(value).startsWith('3.14159')) {
-        return 'Value is not actually pi-ish';
+      if (typeof value !== 'object' || value === null || Array.isArray(value)) {
+        /* We can either throw to indicate a bad value */
+        throw new Error(`Expected user to be object, got ${typeof value}`);
       }
+
+      if (typeof value.email !== 'string') {
+        /* Or return a reason/message string */
+        return `Expected user-${userId} to have an email`;
+      }
+
+      if (typeof value.username !== 'string') {
+        /* Or just say no... */
+        return false
+      }
+
+      /* undefined, true or null are considered OK */
     },
   });
 }
@@ -350,9 +356,10 @@ const user = await cachified({
   checkValue: z.object({
     email: z.string()
   }),
-  getFreshValue() {
-    return getUserFromApi(userId)
-  }
+  async getFreshValue() {
+    const response = await fetch(`https://jsonplaceholder.typicode.com/users/${userId}`);
+    return response.json();
+  },
 });
 ```
 
@@ -367,17 +374,17 @@ import LRUCache from 'lru-cache';
 import { cachified } from 'cachified';
 
 const lru = new LRUCache<string, CacheEntry<string>>({ max: 1000 });
-/* Let's assume we've previously stored values as string */
-lru.set('pi', { value: '3.14', metadata: { createdAt: Date.now() } });
+/* Let's assume we've previously only stored emails not user objects */
+lru.set('user-1', { value: 'someone@example.org', metadata: { createdAt: Date.now() } });
 
-function getPi() {
-  return cachified({
+function getUserById(userId: string) {
+ return cachified({
     /* ...{ getFreshValue } */
-    key: 'pi',
+    key: 'user-1',
     cache: lru,
     checkValue(value, migrate) {
-      if (typeof value === 'string' && value.startsWith('3.14')) {
-        return migrate(parseFloat(value));
+      if (typeof value === 'string') {
+        return migrate({ email: value });
       }
       /* other validations... */
     },
@@ -385,10 +392,11 @@ function getPi() {
 }
 ```
 
-- **First Call**:  
-  Cache is not empty but value can be migrated, `3.14` is returned and cached value is updated,
+- **First Call `getUserById('1')`**:  
+  Cache is not empty and outdated, but value can be migrated from email to user-object.
+  `{ email: 'someone@example.org' }` is returned and cached value is updated.
   `getFreshValue` is not invoked
-- **Second Call**:  
+- **Second Call `getUserById('1')`**:  
   Cache is filled an valid. `getFreshValue` is not invoked, cached value is returned
 
 ### Fine-tuning cache metadata based on fresh values
@@ -405,8 +413,8 @@ const value: null | string = await cachified({
   /* ...{ cache, key, ... } */
 
   ttl: 60_000 /* Default cache of one minute... */,
-  getFreshValue(context) {
-    const valueFromApi: string | null = getValue();
+  async getFreshValue(context) {
+    const valueFromApi: string | null = await getValue();
 
     if (valueFromApi === null) {
       /* On an empty result, prevent caching */

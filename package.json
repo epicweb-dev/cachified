@@ -41,7 +41,7 @@
   },
   "homepage": "https://github.com/Xiphe/cachified#readme",
   "devDependencies": {
-    "@types/jest": "29.5.0",
+    "@types/jest": "29.5.1",
     "@types/node": "18.15.11",
     "@types/redis-mock": "0.17.1",
     "esbuild": "0.17.15",

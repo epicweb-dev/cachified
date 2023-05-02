@@ -1,4 +1,4 @@
-import LRUCache from 'lru-cache';
+import { LRUCache } from 'lru-cache';
 import { createClient as createRedis3Client } from 'redis-mock';
 import z from 'zod';
 import {

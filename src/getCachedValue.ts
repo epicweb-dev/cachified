@@ -8,7 +8,7 @@ import { checkValue } from './checkValue';
 
 export const CACHE_EMPTY = Symbol();
 export async function getCacheEntry<Value>(
-  { key, cache }: Context<Value>,
+  { key, cache }: Pick<Context<Value>, 'key' | 'cache'>,
   report: Reporter<Value>,
 ): Promise<CacheEntry<unknown> | typeof CACHE_EMPTY> {
   report({ name: 'getCachedValueStart' });

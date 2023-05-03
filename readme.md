@@ -375,11 +375,11 @@ be migrated on read like this:
 ```ts
 import type { CacheEntry } from 'cachified';
 import LRUCache from 'lru-cache';
-import { cachified } from 'cachified';
+import { cachified, createCacheEntry } from 'cachified';
 
-const lru = new LRUCache<string, CacheEntry<string>>({ max: 1000 });
+const lru = new LRUCache<string, CacheEntry<string | { email: string }>>({ max: 1000 });
 /* Let's assume we've previously only stored emails not user objects */
-lru.set('user-1', { value: 'someone@example.org', metadata: { createdAt: Date.now() } });
+lru.set('user-1', createCacheEntry('someone@example.org'));
 
 function getUserById(userId: string) {
  return cachified({
@@ -402,6 +402,40 @@ function getUserById(userId: string) {
   `getFreshValue` is not invoked
 - **Second Call `getUserById('1')`**:  
   Cache is filled an valid. `getFreshValue` is not invoked, cached value is returned
+
+### soft-purging entries
+
+Soft-purging values has the benefit of not immediately putting pressure on the app
+to update all cached values at once and instead allows to get them updated over time.
+
+More details: [Soft vs. hard purge](https://developer.fastly.com/reference/api/purging/#soft-vs-hard-purge)
+
+```ts
+import type { CacheEntry } from 'cachified';
+import LRUCache from 'lru-cache';
+import { softPurge, createCacheEntry } from 'cachified';
+
+const lru = new LRUCache<string, CacheEntry<string>>({ max: 1000 });
+lru.set('user-1', createCacheEntry('someone@example.org', { ttl: 300_000 }));
+
+// This effectively sets the ttl to 0 and stale while revalidate to 300_000
+await softPurge({
+  cache: lru,
+  key: 'user-1',
+});
+
+
+// It's also possible to manually set a new time when the entry should not be served stale
+await softPurge({
+  cache: lru,
+  key: 'user-1',
+  // for one minute serve stale and refresh in background, afterwards get fresh value directly
+  staleWhileRevalidate: 60_000
+});
+```
+
+> ℹ️ In case we need to fully purge the value, we delete the key directly from our cache
+
 
 ### Fine-tuning cache metadata based on fresh values
 

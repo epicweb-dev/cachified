@@ -1051,7 +1051,7 @@ describe('cachified', () => {
         cache,
         key: 'test',
         ttl: 5,
-        staleWhileRevalidate: 5,
+        swr: 5,
         getFreshValue,
       });
 

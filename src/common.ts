@@ -116,6 +116,10 @@ export interface CachifiedOptions<Value> {
    */
   staleWhileRevalidate?: number;
   /**
+   * Alias for staleWhileRevalidate
+   */
+  swr?: number;
+  /**
    * Validator that checks every cached and fresh value to ensure type safety
    *
    * Can be a zod schema or a custom validator function
@@ -192,7 +196,7 @@ export type CachifiedOptionsWithSchema<Value, InternalValue> = Omit<
 export interface Context<Value>
   extends Omit<
     Required<CachifiedOptions<Value>>,
-    'fallbackToCache' | 'reporter' | 'checkValue'
+    'fallbackToCache' | 'reporter' | 'checkValue' | 'swr'
   > {
   checkValue: CheckValue<Value>;
   report: Reporter<Value>;
@@ -207,7 +211,7 @@ export function createContext<Value>({
   ...options
 }: CachifiedOptions<Value>): Context<Value> {
   const ttl = options.ttl ?? Infinity;
-  const staleWhileRevalidate = options.staleWhileRevalidate ?? 0;
+  const staleWhileRevalidate = options.swr ?? options.staleWhileRevalidate ?? 0;
   const checkValueCompat: CheckValue<Value> =
     typeof checkValue === 'function'
       ? checkValue

@@ -123,6 +123,10 @@ interface CachifiedOptions<Value> {
    */
   staleWhileRevalidate?: number;
   /**
+   * Alias for staleWhileRevalidate
+   */
+  swr?: number;
+  /**
    * Validator that checks every cached and fresh value to ensure type safety
    *
    * Can be a zod schema or a custom validator function

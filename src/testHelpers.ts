@@ -26,16 +26,6 @@ export function delay(ms: number) {
   return new Promise((res) => setTimeout(res, ms));
 }
 
-export function createCacheEntry<Value>(
-  value: Value,
-  metadata: Partial<CacheMetadata> = {},
-): CacheEntry<Value> {
-  return {
-    value,
-    metadata: { createdTime: Date.now(), ttl: null, swr: 0, ...metadata },
-  };
-}
-
 export function report(calls: [event: CacheEvent<any>][]) {
   const totalCalls = String(calls.length + 1).length;
   return calls

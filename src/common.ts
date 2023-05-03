@@ -229,11 +229,7 @@ export function createContext<Value>({
     staleRefreshTimeout: 0,
     forceFresh: false,
     ...options,
-    metadata: {
-      ttl: ttl === Infinity ? null : ttl,
-      swr: staleWhileRevalidate === Infinity ? null : staleWhileRevalidate,
-      createdTime: Date.now(),
-    },
+    metadata: createCacheMetaData({ ttl, swr: staleWhileRevalidate }),
   };
 
   const report =
@@ -262,4 +258,26 @@ export function totalTtl(metadata?: CacheMetadata): number {
     return Infinity;
   }
   return (metadata.ttl || 0) + (staleWhileRevalidate(metadata) || 0);
+}
+
+export function createCacheMetaData({
+  ttl = null,
+  swr = 0,
+  createdTime = Date.now(),
+}: Partial<Omit<CacheMetadata, 'swv'>> = {}) {
+  return {
+    ttl: ttl === Infinity ? null : ttl,
+    swr: swr === Infinity ? null : swr,
+    createdTime,
+  };
+}
+
+export function createCacheEntry<Value>(
+  value: Value,
+  metadata?: Partial<Omit<CacheMetadata, 'swv'>>,
+): CacheEntry<Value> {
+  return {
+    value,
+    metadata: createCacheMetaData(metadata),
+  };
 }

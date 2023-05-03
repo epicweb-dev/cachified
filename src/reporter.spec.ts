@@ -1,5 +1,10 @@
-import { cachified, CacheEntry, verboseReporter } from './index';
-import { createCacheEntry, delay, prettyPrint } from './testHelpers';
+import {
+  cachified,
+  CacheEntry,
+  verboseReporter,
+  createCacheEntry,
+} from './index';
+import { delay, prettyPrint } from './testHelpers';
 
 jest.mock('./index', () => {
   if (process.version.startsWith('v18')) {

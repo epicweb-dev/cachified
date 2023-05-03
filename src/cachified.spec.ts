@@ -14,9 +14,10 @@ import {
   redisCacheAdapter,
   RedisLikeCache,
   GetFreshValue,
+  createCacheEntry,
 } from './index';
 import { Deferred } from './createBatch';
-import { createCacheEntry, delay, report } from './testHelpers';
+import { delay, report } from './testHelpers';
 
 jest.mock('./index', () => {
   if (process.version.startsWith('v18')) {
@@ -1471,13 +1472,9 @@ describe('cachified', () => {
     expect(get).toHaveBeenCalledTimes(1);
     expect(get).toHaveBeenCalledWith('test-3');
     expect(set).toHaveBeenCalledTimes(1);
-    expect(set).toHaveBeenCalledWith(
-      'test-3',
-      JSON.stringify({
-        metadata: { ttl: 1, swr: 0, createdTime: 0 },
-        value: 'FOUR',
-      }),
-      { EXAT: 1 },
+    expect(set).toHaveBeenCalledWith('test-3', expect.any(String), { EXAT: 1 });
+    expect(JSON.parse(set.mock.calls[0][1])).toEqual(
+      createCacheEntry('FOUR', { createdTime: 0, swr: 0, ttl: 1 }),
     );
 
     await cache.set('lel', undefined as any);

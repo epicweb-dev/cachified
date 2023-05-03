@@ -1,4 +1,4 @@
-import type { Context, CacheMetadata } from './common';
+import { Context, CacheMetadata, createCacheEntry } from './common';
 import { getCacheEntry, CACHE_EMPTY } from './getCachedValue';
 import { shouldRefresh } from './shouldRefresh';
 import { Reporter } from './reporter';
@@ -61,7 +61,7 @@ export async function getFreshValue<Value>(
   try {
     const write = shouldRefresh(metadata) !== 'now';
     if (write) {
-      await cache.set(key, { metadata, value });
+      await cache.set(key, createCacheEntry(value, metadata));
     }
     report({
       name: 'writeFreshValueSuccess',

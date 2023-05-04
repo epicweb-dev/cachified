@@ -4,21 +4,22 @@
   "description": "neat wrapper for various caches",
   "main": "dist/index.cjs",
   "module": "dist/index.mjs",
-  "types": "dist/index.d.ts",
+  "types": "dist/src/index.d.ts",
   "exports": {
     ".": {
       "require": "./dist/index.cjs",
       "import": "./dist/index.mjs",
-      "types": "./dist/index.d.ts"
+      "types": "./dist/src/index.d.ts"
     }
   },
   "scripts": {
     "prepare": "rm -rf dist && npm run build",
     "build": "npm run build:declarations && npm run build:esm && npm run build:cjs",
-    "build:declarations": "tsc && rm dist/*.spec.d.ts && rm dist/testHelpers.d.ts",
+    "build:declarations": "tsc && rm dist/src/*.spec.d.ts; rm -rf dist/examples && rm dist/src/testHelpers.d.ts",
     "build:esm": "esbuild src/index.ts --outfile=dist/index.mjs --format=esm --bundle --target=es2020 --sourcemap --minify",
     "build:cjs": "esbuild src/index.ts --outfile=dist/index.cjs --format=cjs --bundle --target=es2016 --sourcemap",
-    "test": "jest"
+    "test": "jest",
+    "pretest": "node ./extractExamples.js"
   },
   "repository": {
     "type": "git",
@@ -44,6 +45,7 @@
     "@types/jest": "29.5.1",
     "@types/node": "18.16.3",
     "@types/redis-mock": "0.17.1",
+    "codedown": "2.2.0",
     "esbuild": "0.17.18",
     "jest": "29.5.0",
     "lru-cache": "9.1.1",

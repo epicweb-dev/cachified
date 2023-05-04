@@ -117,12 +117,12 @@ describe('readme', () => {
     const fetch = createCountingFetch();
     await runSoftPurgeExample({ console, time, fetch });
 
-    expect(fetch).toHaveBeenCalledTimes(2);
+    expect(fetch).toHaveBeenCalledTimes(3);
     expect(console.log).toHaveBeenCalledTimes(4);
-    expect(console.log).toHaveBeenNthCalledWith(1, 'someone@example.org');
-    expect(console.log).toHaveBeenNthCalledWith(2, 'someone@example.org');
-    expect(console.log).toHaveBeenNthCalledWith(3, fetchCallNr(0));
-    expect(console.log).toHaveBeenNthCalledWith(4, fetchCallNr(1));
+    expect(console.log).toHaveBeenNthCalledWith(1, fetchCallNr(0));
+    expect(console.log).toHaveBeenNthCalledWith(2, fetchCallNr(0));
+    expect(console.log).toHaveBeenNthCalledWith(3, fetchCallNr(1));
+    expect(console.log).toHaveBeenNthCalledWith(4, fetchCallNr(2));
   });
 
   test('fine-tune', async () => {

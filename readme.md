@@ -512,7 +512,7 @@ console.log(await getUserById(1));
 // Cache is filled an valid.
 ```
 
-### soft-purging entries
+### Soft-purging entries
 
 Soft-purging values has the benefit of not immediately putting pressure on the app
 to update all cached values at once and instead allows to get them updated over time.
@@ -520,10 +520,9 @@ to update all cached values at once and instead allows to get them updated over 
 More details: [Soft vs. hard purge](https://developer.fastly.com/reference/api/purging/#soft-vs-hard-purge)
 
 ```ts
-import { cachified, softPurge, createCacheEntry } from 'cachified';
+import { cachified, softPurge } from 'cachified';
 
 const cache = new Map();
-cache.set('user-1', createCacheEntry('someone@example.org', { ttl: 300_000 }));
 
 function getUserById(userId: number) {
   return cachified({

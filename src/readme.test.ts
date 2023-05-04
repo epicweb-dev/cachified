@@ -1,19 +1,19 @@
-import runIntroExample from '../examples/example0';
-import runLruAdapterExample from '../examples/example2';
-import runStaleWhileRevalidateExample from '../examples/example5';
-import runForceFreshExample from '../examples/example6';
-import runTypeSafetyExample from '../examples/example7';
-import runTypeSafetyZodExample from '../examples/example8';
-import runManualExample from '../examples/example9';
-import runMigrateExample from '../examples/example10';
-import runSoftPurgeExample from '../examples/example11';
-import runFineTuneExample from '../examples/example12';
-import runBatchExample from '../examples/example13';
+import runIntroExample from '../examples/usage-intro';
+import runLruAdapterExample from '../examples/lru-adapter';
+import runStaleWhileRevalidateExample from '../examples/stale-while-revalidate';
+import runForceFreshExample from '../examples/force-fresh';
+import runTypeSafetyExample from '../examples/type-safety';
+import runTypeSafetyZodExample from '../examples/type-safety-zod';
+import runManualExample from '../examples/manual-cache-interactions';
+import runMigrateExample from '../examples/migrating-values';
+import runSoftPurgeExample from '../examples/soft-purge';
+import runFineTuneExample from '../examples/metadata-fine-tuning';
+import runBatchExample from '../examples/batch-operations';
 
 /* We just check that there are no ts errors in these */
-import runRedis4AdapterExample from '../examples/example3';
-import runRedis3AdapterExample from '../examples/example4';
-import runReporterExample from '../examples/example14';
+import runRedis4AdapterExample from '../examples/redis-adapter';
+import runRedis3AdapterExample from '../examples/redis-3-adapter';
+import runReporterExample from '../examples/verbose-reporter';
 
 import { createCacheEntry } from './common';
 

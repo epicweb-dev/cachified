@@ -11,41 +11,45 @@ fs.mkdirSync('./examples');
 const SEPERATOR = '-------------SEPERATOR-------------';
 const TICK = '  await new Promise((resolve) => setTimeout(resolve, 0));';
 
-codedown(fs.readFileSync('./readme.md', 'utf8'), 'ts', SEPERATOR)
-  .split(SEPERATOR)
-  .filter(Boolean)
-  .forEach((code, index) => {
-    if (index === 1) {
-      return;
-    }
+const codeBlocks = fs
+  .readFileSync('./readme.md', 'utf8')
+  .matchAll(/(<!--(?<id>.*?)-->)?\n*```ts(?<code>(.|\n)*?)```/gm);
 
-    const importRegex =
-      /^import\s+(?:{[^}]*}|[\w*]+)\s+from\s+['"][^'"]+['"];\s*$/gm;
-    let imports = code
+Array.from(codeBlocks).forEach(({ groups }, index) => {
+  const id = groups?.id?.trim()?.replace(/\s/g, '-') || `example-${index}`;
+  const code = groups?.code.trim();
+  if (id === 'ignore' || !code) {
+    return;
+  }
+
+  const importRegex =
+    /^import\s+(?:{[^}]*}|[\w*]+)\s+from\s+['"][^'"]+['"];\s*$/gm;
+  let imports =
+    code
       .match(importRegex)
-      .join('\n')
-      .replace(/from ('|")cachified('|");/, 'from $1../src/index$2;');
+      ?.join('\n')
+      .replace(/from ('|")cachified('|");/, 'from $1../src/index$2;') || '';
 
-    if (index === 3) {
-      imports = imports.replace(/from ('|")redis('|");/, 'from $1redis4$2;');
-    }
+  if (index === 3) {
+    imports = imports.replace(/from ('|")redis('|");/, 'from $1redis4$2;');
+  }
 
-    let restOfTheCode = code
-      .replace(importRegex, '')
-      .trim()
-      .replace(/\n/gm, '\n  ')
-      .replace(
-        /\/\/ (\d+) seconds? later/gm,
-        (_, seconds) => `time.current += ${seconds} * 1000;\n${TICK}`,
-      )
-      .replace(
-        /\/\/ (\d+) minutes? later/gm,
-        (_, minutes) => `time.current += ${minutes} * 60_000;\n${TICK}`,
-      );
+  let restOfTheCode = code
+    .replace(importRegex, '')
+    .trim()
+    .replace(/\n/gm, '\n  ')
+    .replace(
+      /\/\/ (\d+) seconds? later/gm,
+      (_, seconds) => `time.current += ${seconds} * 1000;\n${TICK}`,
+    )
+    .replace(
+      /\/\/ (\d+) minutes? later/gm,
+      (_, minutes) => `time.current += ${minutes} * 60_000;\n${TICK}`,
+    );
 
-    fs.writeFileSync(
-      './examples/example' + index + '.ts',
-      `${imports}
+  fs.writeFileSync(
+    `./examples/${id}.ts`,
+    `${imports}
 interface Opts {
   console?: Console;
   fetch?: typeof global.fetch;
@@ -57,8 +61,7 @@ export default async function run({
   time = { current: 0 },
 }: Opts = {}) {
   ${restOfTheCode}
-
   ${restOfTheCode.includes('const cache =') ? 'return cache' : ''}
 }`,
-    );
-  });
+  );
+});

@@ -19,7 +19,8 @@
     "build:esm": "esbuild src/index.ts --outfile=dist/index.mjs --format=esm --bundle --target=es2020 --sourcemap --minify",
     "build:cjs": "esbuild src/index.ts --outfile=dist/index.cjs --format=cjs --bundle --target=es2016 --sourcemap",
     "test": "jest",
-    "pretest": "node ./extractExamples.js"
+    "pretest": "node ./extractExamples.js",
+    "prebuild": "node ./extractExamples.js"
   },
   "repository": {
     "type": "git",

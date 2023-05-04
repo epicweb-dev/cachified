@@ -1,7 +1,11 @@
 const codedown = require('codedown');
 const fs = require('fs');
 
-fs.rmSync('./examples', { recursive: true });
+try {
+  fs.rmSync('./examples', { recursive: true });
+} catch {
+  // ¯\_(ツ)_/¯
+}
 fs.mkdirSync('./examples');
 
 const SEPERATOR = '-------------SEPERATOR-------------';

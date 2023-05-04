@@ -341,9 +341,9 @@ For example other parties could also write to the cache or code is changed while
 stays the same.
 
 ```ts
-import { cachified, CacheEntry, createCacheEntry } from 'cachified';
+import { cachified, createCacheEntry } from 'cachified';
 
-const cache = new Map<string, CacheEntry>();
+const cache = new Map();
 
 /* Assume something bad happened and we have an invalid cache entry... */
 cache.set('user-1', createCacheEntry('INVALID') as any);
@@ -399,10 +399,10 @@ console.log(await getUserById(1));
 We can also use zod schemas to ensure correct types
 
 ```ts
-import { cachified, CacheEntry, createCacheEntry } from 'cachified';
+import { cachified, createCacheEntry } from 'cachified';
 import z from 'zod';
 
-const cache = new Map<string, CacheEntry>();
+const cache = new Map();
 /* Assume something bad happened and we have an invalid cache entry... */
 cache.set('user-1', createCacheEntry('INVALID') as any);
 
@@ -437,14 +437,9 @@ During normal app lifecycle there usually is no need for this but for
 maintenance and testing these helpers might come handy.
 
 ```ts
-import {
-  CacheEntry,
-  createCacheEntry,
-  assertCacheEntry,
-  cachified
-} from 'cachified';
+import { createCacheEntry, assertCacheEntry, cachified } from 'cachified';
 
-const cache = new Map<string, CacheEntry>();
+const cache = new Map();
 
 /* Manually set an entry to cache */
 cache.set(
@@ -483,9 +478,9 @@ When the format of cached values is changed during the apps lifetime they can
 be migrated on read like this:
 
 ```ts
-import { cachified, createCacheEntry, CacheEntry } from 'cachified';
+import { cachified, createCacheEntry } from 'cachified';
 
-const cache = new Map<string, CacheEntry>();
+const cache = new Map();
 
 /* Let's assume we've previously only stored emails not user objects */
 cache.set('user-1', createCacheEntry('someone@example.org'));
@@ -525,14 +520,9 @@ to update all cached values at once and instead allows to get them updated over 
 More details: [Soft vs. hard purge](https://developer.fastly.com/reference/api/purging/#soft-vs-hard-purge)
 
 ```ts
-import {
-  cachified,
-  softPurge,
-  createCacheEntry,
-  CacheEntry
-} from 'cachified';
+import { cachified, softPurge, createCacheEntry } from 'cachified';
 
-const cache = new Map<string, CacheEntry>();
+const cache = new Map();
 cache.set('user-1', createCacheEntry('someone@example.org', { ttl: 300_000 }));
 
 function getUserById(userId: number) {
@@ -590,9 +580,9 @@ For example when an API might either provide our data or `null` and in case we
 get an empty result we want to retry the API much faster.
 
 ```ts
-import { cachified, CacheEntry } from 'cachified';
+import { cachified } from 'cachified';
 
-const cache = new Map<string, CacheEntry>();
+const cache = new Map();
 
 const value: null | string = await cachified({
   ttl: 60_000 /* Default cache of one minute... */,
@@ -674,9 +664,9 @@ A reporter might be passed to cachified to log caching events, we ship a reporte
 resembling the logging from [Kents implementation](https://github.com/kentcdodds/kentcdodds.com/blob/3efd0d3a07974ece0ee64d665f5e2159a97585df/app/utils/cache.server.ts)
 
 ```ts
-import { cachified, verboseReporter, CacheEntry } from 'cachified';
+import { cachified, verboseReporter } from 'cachified';
 
-const cache = new Map<string, CacheEntry>();
+const cache = new Map();
 
 await cachified({
   reporter: verboseReporter(),

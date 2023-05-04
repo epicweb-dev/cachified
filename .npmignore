@@ -4,3 +4,5 @@ src
 .*
 jest.config.js
 tsconfig.json
+extractExamples.js
+examples

@@ -22,6 +22,7 @@ npm install cachified
 
 ## Usage
 
+<!-- usage-intro -->
 ```ts
 import { LRUCache } from 'lru-cache';
 import { cachified, CacheEntry } from 'cachified';
@@ -36,7 +37,9 @@ function getUserById(userId: number) {
     async getFreshValue() {
       /* Normally we want to either use a type-safe API or `checkValue` but
          to keep this example simple we work with `any` */
-      const response = await fetch(`https://jsonplaceholder.typicode.com/users/${userId}`);
+      const response = await fetch(
+        `https://jsonplaceholder.typicode.com/users/${userId}`,
+      );
       return response.json();
     },
     /* 5 minutes until cache gets invalid
@@ -66,6 +69,7 @@ console.log(await getUserById(1));
 
 ## Options
 
+<!-- ignore -->
 ```ts
 interface CachifiedOptions<Value> {
   /**
@@ -198,6 +202,7 @@ the used caches cleanup outdated values themselves.
 
 ### Adapter for [lru-cache](https://www.npmjs.com/package/lru-cache)
 
+<!-- lru-adapter -->
 ```ts
 import { LRUCache } from 'lru-cache';
 import { cachified, lruCacheAdapter, CacheEntry } from 'cachified';
@@ -210,17 +215,20 @@ await cachified({
   key: 'user-1',
   getFreshValue() {
     return 'user@example.org';
-  }
+  },
 });
 ```
 
 ### Adapter for [redis](https://www.npmjs.com/package/redis)
 
+<!-- redis-adapter -->
 ```ts
 import { createClient } from 'redis';
 import { cachified, redisCacheAdapter } from 'cachified';
 
-const redis = createClient({ /* ...opts */ });
+const redis = createClient({
+  /* ...opts */
+});
 const cache = redisCacheAdapter(redis);
 
 await cachified({
@@ -228,17 +236,20 @@ await cachified({
   key: 'user-1',
   getFreshValue() {
     return 'user@example.org';
-  }
+  },
 });
 ```
 
 ### Adapter for [redis@3](https://www.npmjs.com/package/redis/v/3.1.2)
 
+<!-- redis-3-adapter -->
 ```ts
 import { createClient } from 'redis';
 import { cachified, redis3CacheAdapter } from 'cachified';
 
-const redis = createClient({ /* ...opts */ });
+const redis = createClient({
+  /* ...opts */
+});
 const cache = redis3CacheAdapter(redis);
 
 const data = await cachified({
@@ -246,7 +257,7 @@ const data = await cachified({
   key: 'user-1',
   getFreshValue() {
     return 'user@example.org';
-  }
+  },
 });
 ```
 
@@ -258,6 +269,7 @@ Specify a time window in which a cached value is returned even though
 it's ttl is exceeded while the cache is updated in the background for the next
 call.
 
+<!-- stale-while-revalidate -->
 ```ts
 import { cachified } from 'cachified';
 
@@ -271,9 +283,11 @@ function getUserById(userId: number) {
     cache,
     key: `user-${userId}`,
     async getFreshValue() {
-      const response = await fetch(`https://jsonplaceholder.typicode.com/users/${userId}`);
+      const response = await fetch(
+        `https://jsonplaceholder.typicode.com/users/${userId}`,
+      );
       return response.json();
-    }
+    },
   });
 }
 
@@ -304,6 +318,7 @@ console.log(await getUserById(1));
 
 We can use `forceFresh` to get a fresh value regardless of the values ttl or stale while validate
 
+<!-- force-fresh -->
 ```ts
 import { cachified } from 'cachified';
 
@@ -314,14 +329,16 @@ function getUserById(userId: number, forceFresh?: boolean) {
     forceFresh,
     /* when getting a forced fresh value fails we fall back to cached value
        as long as it's not older then one hour */
-    fallbackToCache: 300_000, /* 5 minutes, defaults to Infinity */
+    fallbackToCache: 300_000 /* 5 minutes, defaults to Infinity */,
 
     cache,
     key: `user-${userId}`,
     async getFreshValue() {
-      const response = await fetch(`https://jsonplaceholder.typicode.com/users/${userId}`);
+      const response = await fetch(
+        `https://jsonplaceholder.typicode.com/users/${userId}`,
+      );
       return response.json();
-    }
+    },
   });
 }
 
@@ -340,6 +357,7 @@ In practice we can not be entirely sure that values from cache are of the types 
 For example other parties could also write to the cache or code is changed while cache
 stays the same.
 
+<!-- type-safety -->
 ```ts
 import { cachified, createCacheEntry } from 'cachified';
 
@@ -372,7 +390,9 @@ function getUserById(userId: number) {
     cache,
     key: `user-${userId}`,
     async getFreshValue() {
-      const response = await fetch(`https://jsonplaceholder.typicode.com/users/${userId}`);
+      const response = await fetch(
+        `https://jsonplaceholder.typicode.com/users/${userId}`,
+      );
       return response.json();
     },
   });
@@ -398,6 +418,7 @@ console.log(await getUserById(1));
 
 We can also use zod schemas to ensure correct types
 
+<!-- type-safety-zod -->
 ```ts
 import { cachified, createCacheEntry } from 'cachified';
 import z from 'zod';
@@ -409,13 +430,15 @@ cache.set('user-1', createCacheEntry('INVALID') as any);
 function getUserById(userId: number) {
   return cachified({
     checkValue: z.object({
-      email: z.string()
+      email: z.string(),
     }),
 
     cache,
     key: `user-${userId}`,
     async getFreshValue() {
-      const response = await fetch(`https://jsonplaceholder.typicode.com/users/${userId}`);
+      const response = await fetch(
+        `https://jsonplaceholder.typicode.com/users/${userId}`,
+      );
       return response.json();
     },
   });
@@ -436,6 +459,7 @@ console.log(await getUserById(1));
 During normal app lifecycle there usually is no need for this but for
 maintenance and testing these helpers might come handy.
 
+<!-- manual-cache-interactions -->
 ```ts
 import { createCacheEntry, assertCacheEntry, cachified } from 'cachified';
 
@@ -447,8 +471,8 @@ cache.set(
   createCacheEntry(
     'someone@example.org',
     /* Optional CacheMetadata */
-    { ttl: 300_000, swr: Infinity }
-  )
+    { ttl: 300_000, swr: Infinity },
+  ),
 );
 
 /* Receive the value with cachified */
@@ -456,10 +480,10 @@ const value: string = await cachified({
   cache,
   key: 'user-1',
   getFreshValue() {
-    throw new Error('This is not called since cache is set earlier')
-  }
+    throw new Error('This is not called since cache is set earlier');
+  },
 });
-console.log(value)
+console.log(value);
 // > logs "someone@example.org"
 
 /* Manually get a value from cache */
@@ -477,6 +501,7 @@ cache.delete('user-1');
 When the format of cached values is changed during the apps lifetime they can
 be migrated on read like this:
 
+<!-- migrating-values -->
 ```ts
 import { cachified, createCacheEntry } from 'cachified';
 
@@ -486,7 +511,7 @@ const cache = new Map();
 cache.set('user-1', createCacheEntry('someone@example.org'));
 
 function getUserById(userId: number) {
- return cachified({
+  return cachified({
     checkValue(value, migrate) {
       if (typeof value === 'string') {
         return migrate({ email: value });
@@ -498,7 +523,7 @@ function getUserById(userId: number) {
     cache,
     getFreshValue() {
       throw new Error('This is never called');
-    }
+    },
   });
 }
 
@@ -514,11 +539,12 @@ console.log(await getUserById(1));
 
 ### Soft-purging entries
 
-Soft-purging values has the benefit of not immediately putting pressure on the app
+Soft-purging cached data has the benefit of not immediately putting pressure on the app
 to update all cached values at once and instead allows to get them updated over time.
 
 More details: [Soft vs. hard purge](https://developer.fastly.com/reference/api/purging/#soft-vs-hard-purge)
 
+<!-- soft-purge -->
 ```ts
 import { cachified, softPurge } from 'cachified';
 
@@ -530,9 +556,11 @@ function getUserById(userId: number) {
     key: `user-${userId}`,
     ttl: 300_000,
     async getFreshValue() {
-      const response = await fetch(`https://jsonplaceholder.typicode.com/users/${userId}`);
+      const response = await fetch(
+        `https://jsonplaceholder.typicode.com/users/${userId}`,
+      );
       return response.json();
-    }
+    },
   });
 }
 
@@ -560,7 +588,7 @@ await softPurge({
   cache,
   key: 'user-1',
   // manually overwrite how long the stale data should stay in cache
-  staleWhileRevalidate: 60_000 /* one minute from now on */
+  staleWhileRevalidate: 60_000 /* one minute from now on */,
 });
 
 // 2 minutes later
@@ -570,7 +598,6 @@ console.log(await getUserById(1));
 
 > ℹ️ In case we need to fully purge the value, we delete the key directly from our cache
 
-
 ### Fine-tuning cache metadata based on fresh values
 
 There are scenarios where we want to change the cache time based on the fresh
@@ -578,6 +605,7 @@ value (ref [#25](https://github.com/Xiphe/cachified/issues/25)).
 For example when an API might either provide our data or `null` and in case we
 get an empty result we want to retry the API much faster.
 
+<!-- metadata-fine-tuning -->
 ```ts
 import { cachified } from 'cachified';
 
@@ -586,7 +614,9 @@ const cache = new Map();
 const value: null | string = await cachified({
   ttl: 60_000 /* Default cache of one minute... */,
   async getFreshValue(context) {
-    const response = await fetch(`https://jsonplaceholder.typicode.com/users/1`);
+    const response = await fetch(
+      `https://jsonplaceholder.typicode.com/users/1`,
+    );
     const data = await response.json();
 
     if (data === null) {
@@ -598,7 +628,7 @@ const value: null | string = await cachified({
   },
 
   cache,
-  key: 'user-1'
+  key: 'user-1',
 });
 ```
 
@@ -607,6 +637,7 @@ const value: null | string = await cachified({
 In case multiple values can be requested in a batch action, but it's not
 clear which values are currently in cache we can use the `createBatch` helper
 
+<!-- batch-operations -->
 ```ts
 import { cachified, createBatch } from 'cachified';
 
@@ -644,7 +675,6 @@ function getUsersWithId(ids: number[]) {
   );
 }
 
-
 console.log(await getUsersWithId([1, 2]));
 // > logs user objects for ID 1 & ID 2
 // Caches is completely empty. `getFreshValues` is invoked with `[1, 2]`
@@ -662,6 +692,7 @@ console.log(await getUsersWithId([2, 3]));
 A reporter might be passed to cachified to log caching events, we ship a reporter
 resembling the logging from [Kents implementation](https://github.com/kentcdodds/kentcdodds.com/blob/3efd0d3a07974ece0ee64d665f5e2159a97585df/app/utils/cache.server.ts)
 
+<!-- verbose-reporter -->
 ```ts
 import { cachified, verboseReporter } from 'cachified';
 
@@ -673,9 +704,11 @@ await cachified({
   cache,
   key: 'user-1',
   async getFreshValue() {
-    const response = await fetch(`https://jsonplaceholder.typicode.com/users/1`);
+    const response = await fetch(
+      `https://jsonplaceholder.typicode.com/users/1`,
+    );
     return response.json();
-  }
+  },
 });
 ```
 

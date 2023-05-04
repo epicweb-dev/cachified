@@ -328,7 +328,7 @@ function getUserById(userId: number, forceFresh?: boolean) {
   return cachified({
     forceFresh,
     /* when getting a forced fresh value fails we fall back to cached value
-       as long as it's not older then one hour */
+       as long as it's not older then 5 minutes */
     fallbackToCache: 300_000 /* 5 minutes, defaults to Infinity */,
 
     cache,

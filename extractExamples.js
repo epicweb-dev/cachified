@@ -1,4 +1,3 @@
-const codedown = require('codedown');
 const fs = require('fs');
 
 try {
@@ -8,7 +7,6 @@ try {
 }
 fs.mkdirSync('./examples');
 
-const SEPERATOR = '-------------SEPERATOR-------------';
 const TICK = '  await new Promise((resolve) => setTimeout(resolve, 0));';
 
 const codeBlocks = fs

@@ -242,3 +242,14 @@ export function verboseReporter<Value>({
     };
   };
 }
+
+export function mergeReporters<Value = unknown>(
+  ...reporters: (CreateReporter<Value> | undefined)[]
+): CreateReporter<Value> {
+  return (context) => {
+    const reporter = reporters.map((r) => r?.(context));
+    return (event) => {
+      reporter.forEach((r) => r?.(event));
+    };
+  };
+}

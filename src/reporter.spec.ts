@@ -3,6 +3,7 @@ import {
   CacheEntry,
   verboseReporter,
   createCacheEntry,
+  mergeReporters,
 } from './index';
 import { delay, prettyPrint } from './testHelpers';
 
@@ -211,6 +212,34 @@ describe('verbose reporter', () => {
     await delay(0);
     expect(logger.print()).toMatchInlineSnapshot(
       `"LOG: 'Background refresh for test failed.' [Error: 🧨]"`,
+    );
+  });
+});
+
+describe('mergeReporters', () => {
+  it('merges multiple reporters', async () => {
+    const cache = new Map<string, CacheEntry>();
+    const logger1 = createLogger();
+    const logger2 = createLogger();
+
+    await cachified({
+      cache,
+      key: 'test',
+      reporter: mergeReporters(
+        verboseReporter({ logger: logger1, performance: Date }),
+        undefined,
+        verboseReporter({ logger: logger2, performance: Date }),
+      ),
+      getFreshValue() {
+        return 'ONE';
+      },
+    });
+
+    expect(logger1.print()).toMatchInlineSnapshot(
+      `"LOG: 'Updated the cache value for test.' 'Getting a fresh value for this took 0ms.' 'Caching for forever in Map.'"`,
+    );
+    expect(logger2.print()).toMatchInlineSnapshot(
+      `"LOG: 'Updated the cache value for test.' 'Getting a fresh value for this took 0ms.' 'Caching for forever in Map.'"`,
     );
   });
 });

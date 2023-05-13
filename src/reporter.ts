@@ -86,6 +86,10 @@ export type RefreshValueErrorEvent = {
   name: 'refreshValueError';
   error: unknown;
 };
+export type DoneEvent<Value> = {
+  name: 'done';
+  value: Value;
+};
 
 export type CacheEvent<Value> =
   | GetFreshValueStartEvent
@@ -107,7 +111,8 @@ export type CacheEvent<Value> =
   | GetCachedValueErrorEvent
   | RefreshValueStartEvent
   | RefreshValueSuccessEvent<Value>
-  | RefreshValueErrorEvent;
+  | RefreshValueErrorEvent
+  | DoneEvent<Value>;
 
 export type Reporter<Value> = (event: CacheEvent<Value>) => void;
 

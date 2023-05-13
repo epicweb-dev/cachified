@@ -42,6 +42,7 @@ export async function cachified<Value>(
     ? await getCachedValue(context, report, hasPendingValue)
     : CACHE_EMPTY;
   if (cachedValue !== CACHE_EMPTY) {
+    report({ name: 'done', value: cachedValue });
     return cachedValue;
   }
 
@@ -49,7 +50,9 @@ export async function cachified<Value>(
     const { value: pendingRefreshValue, metadata } = pendingValues.get(key)!;
     if (!shouldRefresh(metadata)) {
       report({ name: 'getFreshValueHookPending' });
-      return pendingRefreshValue;
+      const value = await pendingRefreshValue;
+      report({ name: 'done', value });
+      return value;
     }
   }
 
@@ -79,5 +82,7 @@ export async function cachified<Value>(
     resolve: resolveFromFuture!,
   });
 
-  return freshValue;
+  const value = await freshValue;
+  report({ name: 'done', value });
+  return value;
 }

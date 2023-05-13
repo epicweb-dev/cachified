@@ -76,7 +76,9 @@ describe('cachified', () => {
 6. getFreshValueSuccess
    {value: 'ONE'}
 7. writeFreshValueSuccess
-   {metadata: {createdTime: 0, swr: 0, ttl: null}, migrated: false, written: true}"
+   {metadata: {createdTime: 0, swr: 0, ttl: null}, migrated: false, written: true}
+8. done
+   {value: 'ONE'}"
 `);
 
     expect(value2).toBe('ONE');
@@ -87,7 +89,9 @@ describe('cachified', () => {
 3. getCachedValueRead
    {entry: {metadata: {createdTime: 0, swr: 0, ttl: null}, value: 'ONE'}}
 4. getCachedValueSuccess
-   {migrated: false, value: 'ONE'}"
+   {migrated: false, value: 'ONE'}
+5. done
+   {value: 'ONE'}"
 `);
   });
 
@@ -409,7 +413,9 @@ describe('cachified', () => {
 3. getCachedValueRead
    {entry: {metadata: {createdTime: 0, swr: 0, ttl: null}, value: '☁️'}}
 4. getCachedValueSuccess
-   {migrated: true, value: '☀️'}"
+   {migrated: true, value: '☀️'}
+5. done
+   {value: '☀️'}"
 `);
   });
 
@@ -596,7 +602,9 @@ describe('cachified', () => {
 6. getFreshValueCacheFallback
    {value: 'ONE'}
 7. writeFreshValueSuccess
-   {metadata: {createdTime: 0, swr: 0, ttl: null}, migrated: false, written: true}"
+   {metadata: {createdTime: 0, swr: 0, ttl: null}, migrated: false, written: true}
+8. done
+   {value: 'ONE'}"
 `);
   });
 
@@ -671,16 +679,20 @@ describe('cachified', () => {
     {value: 'value-0'}
  7. writeFreshValueError
     {error: '🔥'}
- 8. init
+ 8. done
+    {value: 'value-0'}
+ 9. init
     {key: 'test', metadata: {createdTime: 0, swr: 0, ttl: null}}
- 9. getCachedValueStart
-10. getCachedValueRead
-11. getCachedValueEmpty
-12. getFreshValueStart
-13. getFreshValueSuccess
+10. getCachedValueStart
+11. getCachedValueRead
+12. getCachedValueEmpty
+13. getFreshValueStart
+14. getFreshValueSuccess
     {value: 'value-1'}
-14. writeFreshValueSuccess
-    {metadata: {createdTime: 0, swr: 0, ttl: null}, migrated: false, written: true}"
+15. writeFreshValueSuccess
+    {metadata: {createdTime: 0, swr: 0, ttl: null}, migrated: false, written: true}
+16. done
+    {value: 'value-1'}"
 `);
     expect(await getValue()).toBe('value-1');
   });
@@ -718,25 +730,31 @@ describe('cachified', () => {
     {value: 'value-0'}
  7. writeFreshValueSuccess
     {metadata: {createdTime: 0, swr: 0, ttl: 5}, migrated: false, written: true}
- 8. init
+ 8. done
+    {value: 'value-0'}
+ 9. init
     {key: 'test', metadata: {createdTime: 4, swr: 0, ttl: 5}}
- 9. getCachedValueStart
-10. getCachedValueRead
+10. getCachedValueStart
+11. getCachedValueRead
     {entry: {metadata: {createdTime: 0, swr: 0, ttl: 5}, value: 'value-0'}}
-11. getCachedValueSuccess
+12. getCachedValueSuccess
     {migrated: false, value: 'value-0'}
-12. init
+13. done
+    {value: 'value-0'}
+14. init
     {key: 'test', metadata: {createdTime: 6, swr: 0, ttl: 5}}
-13. getCachedValueStart
-14. getCachedValueRead
+15. getCachedValueStart
+16. getCachedValueRead
     {entry: {metadata: {createdTime: 0, swr: 0, ttl: 5}, value: 'value-0'}}
-15. getCachedValueOutdated
+17. getCachedValueOutdated
     {metadata: {createdTime: 0, swr: 0, ttl: 5}, value: 'value-0'}
-16. getFreshValueStart
-17. getFreshValueSuccess
+18. getFreshValueStart
+19. getFreshValueSuccess
     {value: 'value-1'}
-18. writeFreshValueSuccess
-    {metadata: {createdTime: 6, swr: 0, ttl: 5}, migrated: false, written: true}"
+20. writeFreshValueSuccess
+    {metadata: {createdTime: 6, swr: 0, ttl: 5}, migrated: false, written: true}
+21. done
+    {value: 'value-1'}"
 `);
   });
 
@@ -768,7 +786,9 @@ describe('cachified', () => {
 6. getFreshValueSuccess
    {value: 'ONE'}
 7. writeFreshValueSuccess
-   {metadata: {createdTime: 0, swr: 0, ttl: 5}, migrated: false, written: false}"
+   {metadata: {createdTime: 0, swr: 0, ttl: 5}, migrated: false, written: false}
+8. done
+   {value: 'ONE'}"
 `);
   });
 
@@ -810,7 +830,11 @@ describe('cachified', () => {
 11. getFreshValueSuccess
     {value: 'ONE'}
 12. writeFreshValueSuccess
-    {metadata: {createdTime: 0, swr: 0, ttl: null}, migrated: false, written: true}"
+    {metadata: {createdTime: 0, swr: 0, ttl: null}, migrated: false, written: true}
+13. done
+    {value: 'ONE'}
+14. done
+    {value: 'ONE'}"
 `);
   });
 
@@ -905,17 +929,19 @@ describe('cachified', () => {
 
     expect(value).toBe(null);
     expect(report(reporter.mock.calls)).toMatchInlineSnapshot(`
-      "1. init
-         {key: 'test', metadata: {createdTime: 0, swr: 0, ttl: -1}}
-      2. getCachedValueStart
-      3. getCachedValueRead
-      4. getCachedValueEmpty
-      5. getFreshValueStart
-      6. getFreshValueSuccess
-         {value: null}
-      7. writeFreshValueSuccess
-         {metadata: {createdTime: 0, swr: 0, ttl: -1}, migrated: false, written: false}"
-      `);
+"1. init
+   {key: 'test', metadata: {createdTime: 0, swr: 0, ttl: -1}}
+2. getCachedValueStart
+3. getCachedValueRead
+4. getCachedValueEmpty
+5. getFreshValueStart
+6. getFreshValueSuccess
+   {value: null}
+7. writeFreshValueSuccess
+   {metadata: {createdTime: 0, swr: 0, ttl: -1}, migrated: false, written: false}
+8. done
+   {value: null}"
+`);
   });
 
   it('resolves earlier pending values with faster responses from later calls', async () => {
@@ -1005,15 +1031,19 @@ describe('cachified', () => {
     {value: 'value-0'}
  7. writeFreshValueSuccess
     {metadata: {createdTime: 0, swr: 10, ttl: 5}, migrated: false, written: true}
- 8. init
+ 8. done
+    {value: 'value-0'}
+ 9. init
     {key: 'test', metadata: {createdTime: 6, swr: 10, ttl: 5}}
- 9. getCachedValueStart
-10. getCachedValueRead
+10. getCachedValueStart
+11. getCachedValueRead
     {entry: {metadata: {createdTime: 0, swr: 10, ttl: 5}, value: 'value-0'}}
-11. getCachedValueSuccess
+12. getCachedValueSuccess
     {migrated: false, value: 'value-0'}
-12. refreshValueStart
-13. refreshValueSuccess
+13. done
+    {value: 'value-0'}
+14. refreshValueStart
+15. refreshValueSuccess
     {value: 'value-1'}"
 `);
   });
@@ -1134,15 +1164,19 @@ describe('cachified', () => {
     {value: 'value-0'}
  7. writeFreshValueSuccess
     {metadata: {createdTime: 0, swr: 10, ttl: 5}, migrated: false, written: true}
- 8. init
+ 8. done
+    {value: 'value-0'}
+ 9. init
     {key: 'test', metadata: {createdTime: 6, swr: 10, ttl: 5}}
- 9. getCachedValueStart
-10. getCachedValueRead
+10. getCachedValueStart
+11. getCachedValueRead
     {entry: {metadata: {createdTime: 0, swr: 10, ttl: 5}, value: 'value-0'}}
-11. getCachedValueSuccess
+12. getCachedValueSuccess
     {migrated: false, value: 'value-0'}
-12. refreshValueStart
-13. refreshValueError
+13. done
+    {value: 'value-0'}
+14. refreshValueStart
+15. refreshValueError
     {error: [Error: 💩]}"
 `);
   });
@@ -1167,20 +1201,22 @@ describe('cachified', () => {
 
     expect(value).toBe('TWO');
     expect(report(reporter.mock.calls)).toMatchInlineSnapshot(`
-"1. init
-   {key: 'test', metadata: {createdTime: 0, swr: 0, ttl: null}}
-2. getCachedValueStart
-3. getCachedValueRead
-   {entry: {metadata: {createdTime: 0, swr: 0, ttl: null}, value: 'ONE'}}
-4. checkCachedValueErrorObj
-   {reason: 'unknown'}
-5. checkCachedValueError
-   {reason: 'unknown'}
-6. getFreshValueStart
-7. getFreshValueSuccess
-   {value: 'TWO'}
-8. writeFreshValueSuccess
-   {metadata: {createdTime: 0, swr: 0, ttl: null}, migrated: false, written: true}"
+" 1. init
+    {key: 'test', metadata: {createdTime: 0, swr: 0, ttl: null}}
+ 2. getCachedValueStart
+ 3. getCachedValueRead
+    {entry: {metadata: {createdTime: 0, swr: 0, ttl: null}, value: 'ONE'}}
+ 4. checkCachedValueErrorObj
+    {reason: 'unknown'}
+ 5. checkCachedValueError
+    {reason: 'unknown'}
+ 6. getFreshValueStart
+ 7. getFreshValueSuccess
+    {value: 'TWO'}
+ 8. writeFreshValueSuccess
+    {metadata: {createdTime: 0, swr: 0, ttl: null}, migrated: false, written: true}
+ 9. done
+    {value: 'TWO'}"
 `);
 
     // the following lines only exist for 100% coverage 😅
@@ -1198,20 +1234,22 @@ describe('cachified', () => {
     });
     expect(value2).toBe('TWO');
     expect(report(reporter2.mock.calls)).toMatchInlineSnapshot(`
-"1. init
-   {key: 'test', metadata: {createdTime: 0, swr: 0, ttl: null}}
-2. getCachedValueStart
-3. getCachedValueRead
-   {entry: {metadata: {createdTime: 0, swr: 0, ttl: null}, value: 'ONE'}}
-4. checkCachedValueErrorObj
-   {reason: '🖕'}
-5. checkCachedValueError
-   {reason: '🖕'}
-6. getFreshValueStart
-7. getFreshValueSuccess
-   {value: 'TWO'}
-8. writeFreshValueSuccess
-   {metadata: {createdTime: 0, swr: 0, ttl: null}, migrated: false, written: true}"
+" 1. init
+    {key: 'test', metadata: {createdTime: 0, swr: 0, ttl: null}}
+ 2. getCachedValueStart
+ 3. getCachedValueRead
+    {entry: {metadata: {createdTime: 0, swr: 0, ttl: null}, value: 'ONE'}}
+ 4. checkCachedValueErrorObj
+    {reason: '🖕'}
+ 5. checkCachedValueError
+    {reason: '🖕'}
+ 6. getFreshValueStart
+ 7. getFreshValueSuccess
+    {value: 'TWO'}
+ 8. writeFreshValueSuccess
+    {metadata: {createdTime: 0, swr: 0, ttl: null}, migrated: false, written: true}
+ 9. done
+    {value: 'TWO'}"
 `);
   });
 

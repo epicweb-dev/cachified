@@ -180,7 +180,7 @@ export interface CachifiedOptions<Value> {
    *
    * Default: `undefined` - no reporting
    */
-  reporter?: CreateReporter<Value>;
+  reporter?: CreateReporter<Value> | null;
 }
 
 /* When using a schema validator, a strongly typed getFreshValue is not required

@@ -249,7 +249,7 @@ export function verboseReporter<Value>({
 }
 
 export function mergeReporters<Value = unknown>(
-  ...reporters: (CreateReporter<Value> | undefined)[]
+  ...reporters: (CreateReporter<Value> | null | undefined)[]
 ): CreateReporter<Value> {
   return (context) => {
     const reporter = reporters.map((r) => r?.(context));

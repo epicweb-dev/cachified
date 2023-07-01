@@ -52,7 +52,7 @@
     "redis-mock": "0.56.3",
     "redis4": "npm:redis@4.6.6",
     "ts-jest": "29.1.0",
-    "typescript": "5.0.4",
+    "typescript": "5.1.6",
     "zod": "3.21.4"
   }
 }

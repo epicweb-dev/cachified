@@ -20,7 +20,7 @@ import { Deferred } from './createBatch';
 import { delay, report } from './testHelpers';
 
 jest.mock('./index', () => {
-  if (process.version.startsWith('v18')) {
+  if (process.version.startsWith('v20')) {
     return jest.requireActual('./index');
   } else {
     console.log('⚠️ Running Tests against dist/index.cjs');

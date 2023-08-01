@@ -24,9 +24,9 @@ jobs:
     name: 🧪 Test
     strategy:
       matrix:
-        version: [14, 16, 18]
+        version: [14, 16, 18, 20]
         include:
-          - version: 18
+          - version: 20
             coverage: true
     runs-on: ubuntu-latest
     steps:
@@ -58,7 +58,7 @@ jobs:
       - name: ⎔ Setup node
         uses: actions/setup-node@v3
         with:
-          node-version: 18
+          node-version: 20
 
       - name: 📥 Download deps
         uses: bahmutov/npm-install@v1

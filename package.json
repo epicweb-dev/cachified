@@ -53,6 +53,6 @@
     "redis4": "npm:redis@4.6.7",
     "ts-jest": "29.1.1",
     "typescript": "5.1.6",
-    "zod": "3.21.4"
+    "zod": "3.22.2"
   }
 }

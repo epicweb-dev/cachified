@@ -156,7 +156,7 @@ export interface CachifiedOptions<Value> {
    */
   forceFresh?: boolean;
   /**
-   * Weather of not to fall back to cache when getting a forced fresh value
+   * Whether or not to fall back to cache when getting a forced fresh value
    * fails
    *
    * Can also be a positive number as the maximum age in milliseconds that a

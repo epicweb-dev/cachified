@@ -43,6 +43,7 @@
   },
   "homepage": "https://github.com/Xiphe/cachified#readme",
   "devDependencies": {
+    "@cloudflare/workers-types": "^4.20231025.0",
     "@types/jest": "29.5.4",
     "@types/node": "20.5.9",
     "@types/redis-mock": "0.17.1",

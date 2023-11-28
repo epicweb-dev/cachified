@@ -1,5 +1,5 @@
 <div>
-  <h1 align="center"><a href="https://npm.im/@epic-web/cachified">@epic-web/cachified</a></h1>
+  <h1 align="center"><a href="https://npm.im/@epic-web/cachified">🤑 @epic-web/cachified</a></h1>
   <strong>
     A simple API to make your app faster.
   </strong>

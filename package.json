@@ -1,10 +1,13 @@
 {
-  "name": "cachified",
+  "name": "@epic-web/cachified",
   "version": "0.0.0-development",
   "description": "neat wrapper for various caches",
   "main": "dist/index.cjs",
   "module": "dist/index.mjs",
   "types": "dist/src/index.d.ts",
+  "publishConfig": {
+    "access": "public"
+  },
   "exports": {
     ".": {
       "require": "./dist/index.cjs",
@@ -24,7 +27,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/Xiphe/cachified.git"
+    "url": "https://github.com/epicweb-dev/cachified.git"
   },
   "keywords": [
     "cache",
@@ -39,9 +42,9 @@
   "author": "Hannes Diercks <node@xiphe.net> (https://xiphe.net/)",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/Xiphe/cachified/issues"
+    "url": "https://github.com/epicweb-dev/cachified/issues"
   },
-  "homepage": "https://github.com/Xiphe/cachified#readme",
+  "homepage": "https://github.com/epicweb-dev/cachified#readme",
   "devDependencies": {
     "@types/jest": "29.5.10",
     "@types/node": "20.10.0",

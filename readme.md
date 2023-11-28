@@ -1,11 +1,43 @@
-# cachified
+<div>
+  <h1 align="center"><a href="https://npm.im/@epic-web/cachified">@epic-web/cachified</a></h1>
+  <strong>
+    A simple API to make your app faster.
+  </strong>
+  <p>
+    Cachified allows you to cache values with support for time-to-live (ttl),
+    stale-while-revalidate (swr), cache value validation, batching, and
+    type-safety.
+  </p>
+</div>
 
-[![🚀 Publish](https://github.com/Xiphe/cachified/actions/workflows/release.yml/badge.svg)](https://github.com/Xiphe/cachified/actions/workflows/release.yml)
-[![codecov](https://codecov.io/gh/Xiphe/cachified/branch/main/graph/badge.svg?token=GDN0OD10IO)](https://codecov.io/gh/Xiphe/cachified)
-[![no dependencies](https://img.shields.io/badge/dependencies-none-brightgreen)](https://github.com/Xiphe/cachified/search?q=dependencies&type=code)
-[![npm](https://img.shields.io/npm/v/cachified)](https://www.npmjs.com/package/cachified)  
-[![semantic-release: angular](https://img.shields.io/badge/semantic--release-angular-e10079?logo=semantic-release)](https://github.com/semantic-release/semantic-release)
-[![Love and Peace](http://love-and-peace.github.io/love-and-peace/badges/base/v1.0.svg)](https://github.com/love-and-peace/love-and-peace/blob/master/versions/base/v1.0/en.md)
+```
+npm install @epic-web/cachified
+```
+
+<div align="center">
+  <a
+    alt="Epic Web logo"
+    href="https://www.epicweb.dev"
+  >
+    <img
+      width="300px"
+      src="https://github-production-user-asset-6210df.s3.amazonaws.com/1500684/257881576-fd66040b-679f-4f25-b0d0-ab886a14909a.png"
+    />
+  </a>
+</div>
+
+<hr />
+
+<!-- prettier-ignore-start -->
+[![Build Status][build-badge]][build]
+[![MIT License][license-badge]][license]
+[![Code of Conduct][coc-badge]][coc]
+<!-- prettier-ignore-end -->
+
+Watch the talk ["Caching for Cash 🤑"](https://www.epicweb.dev/talks/caching-for-cash)
+on [EpicWeb.dev](https://www.epicweb.dev):
+
+[![Kent smiling with the cachified README on npm behind him](https://github-production-user-asset-6210df.s3.amazonaws.com/1500684/286321796-a280783c-9c99-46fe-abbb-85ac3dc4fd43.png)](https://www.epicweb.dev/talks/caching-for-cash)
 
 #### 🧙 One API to cache them all
 
@@ -16,16 +48,17 @@ wrap virtually everything that can store by key to act as cache with ttl/max-age
 ## Install
 
 ```sh
-npm install cachified
-# yarn add cachified
+npm install @epic-web/cachified
+# yarn add @epic-web/cachified
 ```
 
 ## Usage
 
 <!-- usage-intro -->
+
 ```ts
 import { LRUCache } from 'lru-cache';
-import { cachified, CacheEntry } from 'cachified';
+import { cachified, CacheEntry } from '@epic-web/cachified';
 
 /* lru cache is not part of this package but a simple non-persistent cache */
 const lru = new LRUCache<string, CacheEntry>({ max: 1000 });
@@ -70,6 +103,7 @@ console.log(await getUserById(1));
 ## Options
 
 <!-- ignore -->
+
 ```ts
 interface CachifiedOptions<Value> {
   /**
@@ -152,7 +186,7 @@ interface CachifiedOptions<Value> {
    *
    * A validator function receives two arguments:
    *  1. the value
-   *  2. a migrate callback, see https://github.com/Xiphe/cachified#migrating-values
+   *  2. a migrate callback, see https://github.com/epicweb-dev/cachified#migrating-values
    *
    * Default: `undefined` - no validation
    */
@@ -203,9 +237,10 @@ the used caches cleanup outdated values themselves.
 ### Adapter for [lru-cache](https://www.npmjs.com/package/lru-cache)
 
 <!-- lru-adapter -->
+
 ```ts
 import { LRUCache } from 'lru-cache';
-import { cachified, lruCacheAdapter, CacheEntry } from 'cachified';
+import { cachified, lruCacheAdapter, CacheEntry } from '@epic-web/cachified';
 
 const lru = new LRUCache<string, CacheEntry>({ max: 1000 });
 const cache = lruCacheAdapter(lru);
@@ -222,9 +257,10 @@ await cachified({
 ### Adapter for [redis](https://www.npmjs.com/package/redis)
 
 <!-- redis-adapter -->
+
 ```ts
 import { createClient } from 'redis';
-import { cachified, redisCacheAdapter } from 'cachified';
+import { cachified, redisCacheAdapter } from '@epic-web/cachified';
 
 const redis = createClient({
   /* ...opts */
@@ -243,9 +279,10 @@ await cachified({
 ### Adapter for [redis@3](https://www.npmjs.com/package/redis/v/3.1.2)
 
 <!-- redis-3-adapter -->
+
 ```ts
 import { createClient } from 'redis';
-import { cachified, redis3CacheAdapter } from 'cachified';
+import { cachified, redis3CacheAdapter } from '@epic-web/cachified';
 
 const redis = createClient({
   /* ...opts */
@@ -270,8 +307,9 @@ it's ttl is exceeded while the cache is updated in the background for the next
 call.
 
 <!-- stale-while-revalidate -->
+
 ```ts
-import { cachified } from 'cachified';
+import { cachified } from '@epic-web/cachified';
 
 const cache = new Map();
 
@@ -319,8 +357,9 @@ console.log(await getUserById(1));
 We can use `forceFresh` to get a fresh value regardless of the values ttl or stale while validate
 
 <!-- force-fresh -->
+
 ```ts
-import { cachified } from 'cachified';
+import { cachified } from '@epic-web/cachified';
 
 const cache = new Map();
 
@@ -358,8 +397,9 @@ For example other parties could also write to the cache or code is changed while
 stays the same.
 
 <!-- type-safety -->
+
 ```ts
-import { cachified, createCacheEntry } from 'cachified';
+import { cachified, createCacheEntry } from '@epic-web/cachified';
 
 const cache = new Map();
 
@@ -419,8 +459,9 @@ console.log(await getUserById(1));
 We can also use zod schemas to ensure correct types
 
 <!-- type-safety-zod -->
+
 ```ts
-import { cachified, createCacheEntry } from 'cachified';
+import { cachified, createCacheEntry } from '@epic-web/cachified';
 import z from 'zod';
 
 const cache = new Map();
@@ -460,8 +501,13 @@ During normal app lifecycle there usually is no need for this but for
 maintenance and testing these helpers might come handy.
 
 <!-- manual-cache-interactions -->
+
 ```ts
-import { createCacheEntry, assertCacheEntry, cachified } from 'cachified';
+import {
+  createCacheEntry,
+  assertCacheEntry,
+  cachified,
+} from '@epic-web/cachified';
 
 const cache = new Map();
 
@@ -502,8 +548,9 @@ When the format of cached values is changed during the apps lifetime they can
 be migrated on read like this:
 
 <!-- migrating-values -->
+
 ```ts
-import { cachified, createCacheEntry } from 'cachified';
+import { cachified, createCacheEntry } from '@epic-web/cachified';
 
 const cache = new Map();
 
@@ -545,8 +592,9 @@ to update all cached values at once and instead allows to get them updated over 
 More details: [Soft vs. hard purge](https://developer.fastly.com/reference/api/purging/#soft-vs-hard-purge)
 
 <!-- soft-purge -->
+
 ```ts
-import { cachified, softPurge } from 'cachified';
+import { cachified, softPurge } from '@epic-web/cachified';
 
 const cache = new Map();
 
@@ -601,13 +649,14 @@ console.log(await getUserById(1));
 ### Fine-tuning cache metadata based on fresh values
 
 There are scenarios where we want to change the cache time based on the fresh
-value (ref [#25](https://github.com/Xiphe/cachified/issues/25)).
+value (ref [#25](https://github.com/epicweb-dev/cachified/issues/25)).
 For example when an API might either provide our data or `null` and in case we
 get an empty result we want to retry the API much faster.
 
 <!-- metadata-fine-tuning -->
+
 ```ts
-import { cachified } from 'cachified';
+import { cachified } from '@epic-web/cachified';
 
 const cache = new Map();
 
@@ -638,8 +687,9 @@ In case multiple values can be requested in a batch action, but it's not
 clear which values are currently in cache we can use the `createBatch` helper
 
 <!-- batch-operations -->
+
 ```ts
-import { cachified, createBatch } from 'cachified';
+import { cachified, createBatch } from '@epic-web/cachified';
 
 const cache = new Map();
 
@@ -693,8 +743,9 @@ A reporter might be passed to cachified to log caching events, we ship a reporte
 resembling the logging from [Kents implementation](https://github.com/kentcdodds/kentcdodds.com/blob/3efd0d3a07974ece0ee64d665f5e2159a97585df/app/utils/cache.server.ts)
 
 <!-- verbose-reporter -->
+
 ```ts
-import { cachified, verboseReporter } from 'cachified';
+import { cachified, verboseReporter } from '@epic-web/cachified';
 
 const cache = new Map();
 
@@ -712,4 +763,17 @@ await cachified({
 });
 ```
 
-please refer to [the implementation of `verboseReporter`](https://github.com/Xiphe/cachified/blob/main/src/reporter.ts#L125) when you want to implement a custom reporter.
+please refer to [the implementation of `verboseReporter`](https://github.com/epicweb-dev/cachified/blob/main/src/reporter.ts#L125) when you want to implement a custom reporter.
+
+## License
+
+MIT
+
+<!-- prettier-ignore-start -->
+[build-badge]: https://img.shields.io/github/actions/workflow/status/epicweb-dev/cachified/release.yml?branch=main&logo=github&style=flat-square
+[build]: https://github.com/epicweb-dev/cachified/actions?query=workflow%3Arelease
+[license-badge]: https://img.shields.io/badge/license-MIT%20License-blue.svg?style=flat-square
+[license]: https://github.com/epicweb-dev/cachified/blob/main/LICENSE
+[coc-badge]: https://img.shields.io/badge/code%20of-conduct-ff69b4.svg?style=flat-square
+[coc]: https://kentcdodds.com/conduct
+<!-- prettier-ignore-end -->

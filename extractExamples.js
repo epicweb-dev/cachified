@@ -10,7 +10,7 @@ fs.mkdirSync('./examples');
 const TICK = '  await new Promise((resolve) => setTimeout(resolve, 0));';
 
 const codeBlocks = fs
-  .readFileSync('./readme.md', 'utf8')
+  .readFileSync('./README.md', 'utf8')
   .matchAll(/(<!--(?<id>.*?)-->)?\n*```ts(?<code>(.|\n)*?)```/gm);
 
 Array.from(codeBlocks).forEach(({ groups }, index) => {

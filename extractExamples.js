@@ -26,7 +26,10 @@ Array.from(codeBlocks).forEach(({ groups }, index) => {
     code
       .match(importRegex)
       ?.join('\n')
-      .replace(/from ('|")cachified('|");/, 'from $1../src/index$2;') || '';
+      .replace(
+        /from ('|")@epic-web\/cachified('|");/,
+        'from $1../src/index$2;',
+      ) || '';
 
   if (index === 3) {
     imports = imports.replace(/from ('|")redis('|");/, 'from $1redis4$2;');

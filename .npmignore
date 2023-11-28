@@ -1,9 +1,0 @@
-coverage
-node_modules
-src
-!dist/src
-.*
-jest.config.js
-tsconfig.json
-extractExamples.js
-examples

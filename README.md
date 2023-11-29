@@ -39,12 +39,6 @@ on [EpicWeb.dev](https://www.epicweb.dev):
 
 [![Kent smiling with the cachified README on npm behind him](https://github-production-user-asset-6210df.s3.amazonaws.com/1500684/286321796-a280783c-9c99-46fe-abbb-85ac3dc4fd43.png)](https://www.epicweb.dev/talks/caching-for-cash)
 
-#### 🧙 One API to cache them all
-
-wrap virtually everything that can store by key to act as cache with ttl/max-age, stale-while-validate, parallel fetch protection and type-safety support
-
-> 🤔 Idea and 💻 [initial implementation](https://github.com/kentcdodds/kentcdodds.com/blob/3efd0d3a07974ece0ee64d665f5e2159a97585df/app/utils/cache.server.ts) by [@kentcdodds](https://github.com/kentcdodds) 👏💜
-
 ## Install
 
 ```sh

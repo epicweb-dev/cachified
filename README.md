@@ -49,7 +49,6 @@ npm install @epic-web/cachified
 ## Usage
 
 <!-- usage-intro -->
-
 ```ts
 import { LRUCache } from 'lru-cache';
 import { cachified, CacheEntry } from '@epic-web/cachified';
@@ -97,7 +96,6 @@ console.log(await getUserById(1));
 ## Options
 
 <!-- ignore -->
-
 ```ts
 interface CachifiedOptions<Value> {
   /**
@@ -231,7 +229,6 @@ the used caches cleanup outdated values themselves.
 ### Adapter for [lru-cache](https://www.npmjs.com/package/lru-cache)
 
 <!-- lru-adapter -->
-
 ```ts
 import { LRUCache } from 'lru-cache';
 import { cachified, lruCacheAdapter, CacheEntry } from '@epic-web/cachified';
@@ -251,7 +248,6 @@ await cachified({
 ### Adapter for [redis](https://www.npmjs.com/package/redis)
 
 <!-- redis-adapter -->
-
 ```ts
 import { createClient } from 'redis';
 import { cachified, redisCacheAdapter } from '@epic-web/cachified';
@@ -273,7 +269,6 @@ await cachified({
 ### Adapter for [redis@3](https://www.npmjs.com/package/redis/v/3.1.2)
 
 <!-- redis-3-adapter -->
-
 ```ts
 import { createClient } from 'redis';
 import { cachified, redis3CacheAdapter } from '@epic-web/cachified';
@@ -358,7 +353,6 @@ it's ttl is exceeded while the cache is updated in the background for the next
 call.
 
 <!-- stale-while-revalidate -->
-
 ```ts
 import { cachified } from '@epic-web/cachified';
 
@@ -408,7 +402,6 @@ console.log(await getUserById(1));
 We can use `forceFresh` to get a fresh value regardless of the values ttl or stale while validate
 
 <!-- force-fresh -->
-
 ```ts
 import { cachified } from '@epic-web/cachified';
 
@@ -448,7 +441,6 @@ For example other parties could also write to the cache or code is changed while
 stays the same.
 
 <!-- type-safety -->
-
 ```ts
 import { cachified, createCacheEntry } from '@epic-web/cachified';
 
@@ -510,7 +502,6 @@ console.log(await getUserById(1));
 We can also use zod schemas to ensure correct types
 
 <!-- type-safety-zod -->
-
 ```ts
 import { cachified, createCacheEntry } from '@epic-web/cachified';
 import z from 'zod';
@@ -552,7 +543,6 @@ During normal app lifecycle there usually is no need for this but for
 maintenance and testing these helpers might come handy.
 
 <!-- manual-cache-interactions -->
-
 ```ts
 import {
   createCacheEntry,
@@ -599,7 +589,6 @@ When the format of cached values is changed during the apps lifetime they can
 be migrated on read like this:
 
 <!-- migrating-values -->
-
 ```ts
 import { cachified, createCacheEntry } from '@epic-web/cachified';
 
@@ -643,7 +632,6 @@ to update all cached values at once and instead allows to get them updated over 
 More details: [Soft vs. hard purge](https://developer.fastly.com/reference/api/purging/#soft-vs-hard-purge)
 
 <!-- soft-purge -->
-
 ```ts
 import { cachified, softPurge } from '@epic-web/cachified';
 
@@ -705,7 +693,6 @@ For example when an API might either provide our data or `null` and in case we
 get an empty result we want to retry the API much faster.
 
 <!-- metadata-fine-tuning -->
-
 ```ts
 import { cachified } from '@epic-web/cachified';
 
@@ -738,7 +725,6 @@ In case multiple values can be requested in a batch action, but it's not
 clear which values are currently in cache we can use the `createBatch` helper
 
 <!-- batch-operations -->
-
 ```ts
 import { cachified, createBatch } from '@epic-web/cachified';
 
@@ -794,7 +780,6 @@ A reporter might be passed to cachified to log caching events, we ship a reporte
 resembling the logging from [Kents implementation](https://github.com/kentcdodds/kentcdodds.com/blob/3efd0d3a07974ece0ee64d665f5e2159a97585df/app/utils/cache.server.ts)
 
 <!-- verbose-reporter -->
-
 ```ts
 import { cachified, verboseReporter } from '@epic-web/cachified';
 

@@ -345,6 +345,10 @@ export default {
 };
 ```
 
+### Adapter for [redis-json](https://www.npmjs.com/package/@redis/json)
+
+[cachified-redis-json-adapter](https://www.npmjs.com/package/cachified-redis-json-adapter)
+
 ## Advanced Usage
 
 ### Stale while revalidate

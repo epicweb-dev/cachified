@@ -329,8 +329,6 @@ export default {
     env: Env,
     ctx: ExecutionContext,
   ): Promise<Response> {
-    // It is a common pattern to pass around the env object to most functions when writing workers code
-    // So it's convenient to inject the cache adapter into the env object
     env.CACHIFIED_KV_CACHE = cloudflareKvCacheAdapter({
       kv: env.KV,
       keyPrefix: 'mycache', // optional

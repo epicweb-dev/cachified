@@ -292,6 +292,59 @@ const data = await cachified({
 });
 ```
 
+### Adapter for [Cloudflare KV](https://developers.cloudflare.com/kv/)
+
+For additional information or to report issues, please visit the [cachified-adapter-cloudflare-kv repository](https://github.com/AdiRishi/cachified-adapter-cloudflare-kv).
+
+```ts
+import { cachified, Cache } from '@epic-web/cachified';
+import { cloudflareKvCacheAdapter } from 'cachified-adapter-cloudflare-kv';
+
+export interface Env {
+  KV: KVNamespace;
+  CACHIFIED_KV_CACHE: Cache;
+}
+
+export async function getUserById(
+  userId: number,
+  env: Env,
+): Promise<Record<string, unknown>> {
+  return cachified({
+    key: `user-${userId}`,
+    cache: env.CACHIFIED_KV_CACHE,
+    async getFreshValue() {
+      const response = await fetch(
+        `https://jsonplaceholder.typicode.com/users/${userId}`,
+      );
+      return response.json();
+    },
+    ttl: 60_000, // 1 minute
+    staleWhileRevalidate: 300_000, // 5 minutes
+  });
+}
+
+export default {
+  async fetch(
+    request: Request,
+    env: Env,
+    ctx: ExecutionContext,
+  ): Promise<Response> {
+    env.CACHIFIED_KV_CACHE = cloudflareKvCacheAdapter({
+      kv: env.KV,
+      keyPrefix: 'mycache', // optional
+      name: 'CloudflareKV', // optional
+    });
+    const userId = Math.floor(Math.random() * 10) + 1;
+    const user = await getUserById(userId, env);
+    return new Response(JSON.stringify(user), {
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+  },
+};
+```
+
 ## Advanced Usage
 
 ### Stale while revalidate

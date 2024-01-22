@@ -1640,6 +1640,30 @@ describe('cachified', () => {
       }),
     ).rejects.toThrowErrorMatchingInlineSnapshot(`"Boom"`);
   });
+
+  it('should not expire key with redis3CacheAdapter with Infinity swr', async () => {
+    const redis = createRedis3Client();
+    const cache = redis3CacheAdapter(redis);
+
+    const multiMock: any = {};
+    multiMock.set = () => multiMock;
+    multiMock.expireat = jest.fn().mockReturnValue(multiMock);
+    multiMock.exec = (cb: any) => cb(null);
+
+    redis.multi = () => multiMock;
+
+    await cachified({
+      cache,
+      key: 'test',
+      ttl: 1000,
+      swr: Infinity,
+      getFreshValue() {
+        return 'ONE';
+      },
+    });
+
+    expect(multiMock.expireat).not.toHaveBeenCalled();
+  });
 });
 
 function createReporter() {

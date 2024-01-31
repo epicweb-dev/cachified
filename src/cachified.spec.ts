@@ -1,5 +1,4 @@
 import { LRUCache } from 'lru-cache';
-import { createClient as createRedis3Client } from 'redis-mock';
 import z from 'zod';
 import {
   cachified,
@@ -10,7 +9,6 @@ import {
   CacheMetadata,
   CacheEntry,
   lruCacheAdapter,
-  redis3CacheAdapter,
   GetFreshValue,
   createCacheEntry,
 } from './index';
@@ -1487,107 +1485,6 @@ describe('cachified', () => {
       metadata: { createdTime: 2, swr: 0, ttl: null },
       value: 'THREE',
     });
-  });
-
-  it('works with redis3 cache', async () => {
-    const redis = createRedis3Client();
-    const cache = redis3CacheAdapter(redis);
-
-    const value = await cachified({
-      cache,
-      key: 'test',
-      getFreshValue() {
-        return 'ONE';
-      },
-    });
-
-    expect(value).toBe('ONE');
-
-    await cache.set('test-2', 'TWO' as any);
-    expect(() => cache.set('test-2', undefined as any)).rejects.toThrow();
-
-    currentTime = 2;
-    const value3 = await cachified({
-      cache,
-      key: 'test-2',
-      getFreshValue() {
-        return 'THREE';
-      },
-    });
-    expect(value3).toBe('THREE');
-    expect(await cache.get('test-2')).toEqual({
-      metadata: { createdTime: 2, swr: 0, ttl: null },
-      value: 'THREE',
-    });
-
-    // handle redis get failure
-    jest.spyOn(redis, 'get').mockImplementationOnce((_, cb) => {
-      cb!(new Error('Nope'), null);
-      return false;
-    });
-    await expect(() =>
-      cachified({
-        cache,
-        key: 'test-2',
-        getFreshValue() {
-          throw new Error('Nope Nope Nope');
-        },
-      }),
-    ).rejects.toThrowErrorMatchingInlineSnapshot(`"Nope Nope Nope"`);
-
-    // handle redis del failure
-    jest.spyOn(redis, 'del').mockImplementationOnce((_, cb) => {
-      (cb as Function)(new Error('Nope2'), null);
-      return false;
-    });
-    expect(cache.delete('test-0')).rejects.toThrowErrorMatchingInlineSnapshot(
-      `"Nope2"`,
-    );
-
-    // handle corrupt cache
-    await new Promise((res) => redis.set('test-3', '{{{', res));
-    await expect(() =>
-      cachified({
-        cache,
-        key: 'test-2',
-        getFreshValue() {
-          throw new Error('Broken');
-        },
-      }),
-    ).rejects.toThrowErrorMatchingInlineSnapshot(`"Broken"`);
-
-    // value is cleared from cache after ttl
-    const ttlValue = await cachified({
-      cache,
-      key: 'test-3',
-      ttl: 1,
-      getFreshValue() {
-        return 'FOUR';
-      },
-    });
-    expect(ttlValue).toBe('FOUR');
-
-    await delay(2);
-    expect(await cache.get('test-3')).toBe(null);
-
-    //  handles delete fails
-    jest.spyOn(redis, 'del').mockImplementationOnce((key, cb) => {
-      (cb as Function)(new Error('Nope'));
-      return false;
-    });
-
-    await expect(() =>
-      cachified({
-        cache,
-        checkValue() {
-          return false;
-        },
-        key: 'test',
-        getFreshValue() {
-          throw new Error('Boom');
-        },
-      }),
-    ).rejects.toThrowErrorMatchingInlineSnapshot(`"Boom"`);
   });
 });
 

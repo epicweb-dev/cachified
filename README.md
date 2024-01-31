@@ -254,28 +254,6 @@ await cachified({
 
 [cachified-redis-adapter](https://www.npmjs.com/package/cachified-redis-adapter)
 
-### Adapter for [redis@3](https://www.npmjs.com/package/redis/v/3.1.2)
-
-<!-- redis-3-adapter -->
-
-```ts
-import { createClient } from 'redis';
-import { cachified, redis3CacheAdapter } from '@epic-web/cachified';
-
-const redis = createClient({
-  /* ...opts */
-});
-const cache = redis3CacheAdapter(redis);
-
-const data = await cachified({
-  cache,
-  key: 'user-1',
-  getFreshValue() {
-    return 'user@example.org';
-  },
-});
-```
-
 ### Adapter for [Cloudflare KV](https://developers.cloudflare.com/kv/)
 
 For additional information or to report issues, please visit the [cachified-adapter-cloudflare-kv repository](https://github.com/AdiRishi/cachified-adapter-cloudflare-kv).

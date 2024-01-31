@@ -11,7 +11,6 @@ import runFineTuneExample from '../examples/metadata-fine-tuning';
 import runBatchExample from '../examples/batch-operations';
 
 /* We just check that there are no ts errors in these */
-import runRedis3AdapterExample from '../examples/redis-3-adapter';
 import runReporterExample from '../examples/verbose-reporter';
 
 import { createCacheEntry } from './common';

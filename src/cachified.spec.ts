@@ -11,8 +11,6 @@ import {
   CacheEntry,
   lruCacheAdapter,
   redis3CacheAdapter,
-  redisCacheAdapter,
-  RedisLikeCache,
   GetFreshValue,
   createCacheEntry,
 } from './index';
@@ -1489,55 +1487,6 @@ describe('cachified', () => {
       metadata: { createdTime: 2, swr: 0, ttl: null },
       value: 'THREE',
     });
-  });
-
-  it('works with redis4 cache', async () => {
-    const set = jest.fn();
-    const get = jest.fn();
-    const del = jest.fn();
-    const redis4: RedisLikeCache = { set, get, del };
-    const cache = redisCacheAdapter(redis4);
-
-    const ttlValue = await cachified({
-      cache,
-      key: 'test-3',
-      ttl: 1,
-      getFreshValue() {
-        return 'FOUR';
-      },
-    });
-    expect(ttlValue).toBe('FOUR');
-    expect(get).toHaveBeenCalledTimes(1);
-    expect(get).toHaveBeenCalledWith('test-3');
-    expect(set).toHaveBeenCalledTimes(1);
-    expect(set).toHaveBeenCalledWith('test-3', expect.any(String), { EXAT: 1 });
-    expect(JSON.parse(set.mock.calls[0][1])).toEqual(
-      createCacheEntry('FOUR', { createdTime: 0, swr: 0, ttl: 1 }),
-    );
-
-    await cache.set('lel', undefined as any);
-
-    get.mockImplementationOnce(() =>
-      Promise.resolve(
-        JSON.stringify({
-          metadata: { ttl: null, swr: 0, createdTime: 0 },
-          value: 'FIVE',
-        }),
-      ),
-    );
-    const nextValue = await cachified({
-      cache,
-      key: 'test-3',
-      checkValue(value) {
-        return value !== 'FIVE';
-      },
-      getFreshValue() {
-        return 'SIX';
-      },
-    });
-    expect(nextValue).toBe('SIX');
-    expect(del).toHaveBeenCalledTimes(1);
-    expect(del).toHaveBeenCalledWith('test-3');
   });
 
   it('works with redis3 cache', async () => {

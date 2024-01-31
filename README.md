@@ -252,23 +252,7 @@ await cachified({
 
 <!-- redis-adapter -->
 
-```ts
-import { createClient } from 'redis';
-import { cachified, redisCacheAdapter } from '@epic-web/cachified';
-
-const redis = createClient({
-  /* ...opts */
-});
-const cache = redisCacheAdapter(redis);
-
-await cachified({
-  cache,
-  key: 'user-1',
-  getFreshValue() {
-    return 'user@example.org';
-  },
-});
-```
+[cachified-redis-adapter](https://www.npmjs.com/package/cachified-redis-adapter)
 
 ### Adapter for [redis@3](https://www.npmjs.com/package/redis/v/3.1.2)
 

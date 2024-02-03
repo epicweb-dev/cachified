@@ -1,4 +1,3 @@
-import { LRUCache } from 'lru-cache';
 import z from 'zod';
 import {
   cachified,
@@ -8,7 +7,6 @@ import {
   CreateReporter,
   CacheMetadata,
   CacheEntry,
-  lruCacheAdapter,
   GetFreshValue,
   createCacheEntry,
 } from './index';
@@ -1442,49 +1440,6 @@ describe('cachified', () => {
       metadata: { ttl: null, swr: null, createdTime: Date.now() },
     });
     expect(await getValue(() => () => {})).toBe('FOUR');
-  });
-
-  it('works with LRU cache', async () => {
-    const lru = new LRUCache<string, CacheEntry>({ max: 5 });
-    const cache = lruCacheAdapter(lru);
-
-    const value = await cachified({
-      // works with LRU directly
-      cache: lru,
-      key: 'test',
-      getFreshValue() {
-        return 'ONE';
-      },
-    });
-
-    const value2 = await cachified({
-      cache,
-      key: 'test',
-      getFreshValue() {
-        throw new Error('🚧');
-      },
-    });
-
-    expect(value).toBe('ONE');
-    expect(value2).toBe('ONE');
-
-    cache.set('test-2', undefined as any);
-    cache.set('test-2', 'TWO' as any);
-
-    currentTime = 2;
-    const value3 = await cachified({
-      cache,
-      key: 'test-2',
-      getFreshValue() {
-        return 'THREE';
-      },
-    });
-
-    expect(value3).toBe('THREE');
-    expect(cache.get('test-2')).toEqual({
-      metadata: { createdTime: 2, swr: 0, ttl: null },
-      value: 'THREE',
-    });
   });
 });
 

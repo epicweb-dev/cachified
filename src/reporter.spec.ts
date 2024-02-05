@@ -28,13 +28,21 @@ describe('verbose reporter', () => {
     const logger = createLogger();
     cache.set('test', createCacheEntry('One'));
 
-    await cachified({
-      cache,
-      key: 'test',
-      checkValue: (v) => (v !== 'VALUE' ? '🚔' : true),
-      reporter: verboseReporter({ logger, performance: Date }),
-      getFreshValue: () => 'VALUE',
-    });
+    const result = await cachified(
+      {
+        cache,
+        key: 'test',
+        checkValue: (v) => (v !== 'VALUE' ? '🚔' : true),
+        getFreshValue() {
+          return 'VALUE' as const;
+        },
+      },
+      verboseReporter({ logger, performance: Date }),
+    );
+
+    // ensure correct type of result
+    // ref https://github.com/epicweb-dev/cachified/issues/70
+    const _: 'VALUE' = result;
 
     expect(logger.print()).toMatchInlineSnapshot(`
     "WARN: 'check failed for cached value of test
@@ -52,14 +60,16 @@ describe('verbose reporter', () => {
       throw new Error('💥');
     });
 
-    await cachified({
-      cache,
-      key: 'test',
-      ttl: 50,
-      staleWhileRevalidate: Infinity,
-      reporter: verboseReporter({ logger, performance: Date }),
-      getFreshValue: () => 'VALUE',
-    });
+    await cachified(
+      {
+        cache,
+        key: 'test',
+        ttl: 50,
+        staleWhileRevalidate: Infinity,
+        getFreshValue: () => 'VALUE',
+      },
+      verboseReporter({ logger, performance: Date }),
+    );
 
     expect(logger.print()).toMatchInlineSnapshot(`
     "ERROR: 'error with cache at test. Deleting the cache key and trying to get a fresh value.' [Error: 💥]
@@ -71,14 +81,16 @@ describe('verbose reporter', () => {
     const cache = new Map<string, CacheEntry>();
     const logger = createLogger();
 
-    await cachified({
-      cache,
-      key: 'test',
-      reporter: verboseReporter({ logger, performance: Date }),
-      getFreshValue: () => {
-        throw new Error('⁇');
+    await cachified(
+      {
+        cache,
+        key: 'test',
+        getFreshValue: () => {
+          throw new Error('⁇');
+        },
       },
-    }).catch(() => {
+      verboseReporter({ logger, performance: Date }),
+    ).catch(() => {
       /* ¯\_(ツ)_/¯ */
     });
 
@@ -91,17 +103,19 @@ describe('verbose reporter', () => {
     const cache = new Map<string, CacheEntry>();
     const logger = createLogger();
 
-    await cachified({
-      cache,
-      key: 'test',
-      ttl: 5,
-      staleWhileRevalidate: 5,
-      reporter: verboseReporter({ logger, performance: Date }),
-      getFreshValue: () => {
-        currentTime = 20;
-        return 'ONE';
+    await cachified(
+      {
+        cache,
+        key: 'test',
+        ttl: 5,
+        staleWhileRevalidate: 5,
+        getFreshValue: () => {
+          currentTime = 20;
+          return 'ONE';
+        },
       },
-    });
+      verboseReporter({ logger, performance: Date }),
+    );
 
     expect(logger.print()).toMatchInlineSnapshot(
       `"LOG: 'Not updating the cache value for test.' 'Getting a fresh value for this took 20ms.' 'Thereby exceeding caching time of 5ms + 5ms stale'"`,
@@ -117,12 +131,14 @@ describe('verbose reporter', () => {
       throw new Error('⚡️');
     });
 
-    await cachified({
-      cache,
-      key: 'test',
-      reporter: verboseReporter(),
-      getFreshValue: () => 'ONE',
-    });
+    await cachified(
+      {
+        cache,
+        key: 'test',
+        getFreshValue: () => 'ONE',
+      },
+      verboseReporter(),
+    );
 
     expect(errorMock.mock.calls).toMatchInlineSnapshot(`
 [
@@ -140,12 +156,14 @@ describe('verbose reporter', () => {
     const cache = new Map<string, CacheEntry>();
     const logger = createLogger();
 
-    await cachified({
-      cache,
-      key: 'test',
-      reporter: verboseReporter({ logger }),
-      getFreshValue: () => 'ONE',
-    });
+    await cachified(
+      {
+        cache,
+        key: 'test',
+        getFreshValue: () => 'ONE',
+      },
+      verboseReporter({ logger }),
+    );
 
     (global as any).performance = backup;
     expect(Date.now).toBeCalledTimes(3);
@@ -155,13 +173,15 @@ describe('verbose reporter', () => {
     const cache = new Map<string, CacheEntry>();
     const logger = createLogger();
 
-    await cachified({
-      cache,
-      key: 'test',
-      reporter: verboseReporter({ logger, performance: Date }),
-      checkValue: () => false,
-      getFreshValue: () => 'ONE',
-    }).catch(() => {
+    await cachified(
+      {
+        cache,
+        key: 'test',
+        checkValue: () => false,
+        getFreshValue: () => 'ONE',
+      },
+      verboseReporter({ logger, performance: Date }),
+    ).catch(() => {
       /* 🤷 */
     });
 
@@ -177,15 +197,17 @@ describe('verbose reporter', () => {
     cache.set('test', createCacheEntry('ONE', { ttl: 5, swr: 10 }));
     currentTime = 7;
 
-    await cachified({
-      cache,
-      key: 'test',
-      reporter: verboseReporter({ logger, performance: Date }),
-      getFreshValue: () => {
-        currentTime = 10;
-        return 'TWO';
+    await cachified(
+      {
+        cache,
+        key: 'test',
+        getFreshValue: () => {
+          currentTime = 10;
+          return 'TWO';
+        },
       },
-    });
+      verboseReporter({ logger, performance: Date }),
+    );
 
     await delay(0);
     expect(logger.print()).toMatchInlineSnapshot(
@@ -199,15 +221,17 @@ describe('verbose reporter', () => {
     cache.set('test', createCacheEntry('ONE', { ttl: 5, swr: 10 }));
     currentTime = 7;
 
-    await cachified({
-      cache,
-      key: 'test',
-      reporter: verboseReporter({ logger, performance: Date }),
-      getFreshValue: () => {
-        currentTime = 10;
-        throw new Error('🧨');
+    await cachified(
+      {
+        cache,
+        key: 'test',
+        getFreshValue: () => {
+          currentTime = 10;
+          throw new Error('🧨');
+        },
       },
-    });
+      verboseReporter({ logger, performance: Date }),
+    );
 
     await delay(0);
     expect(logger.print()).toMatchInlineSnapshot(
@@ -222,18 +246,20 @@ describe('mergeReporters', () => {
     const logger1 = createLogger();
     const logger2 = createLogger();
 
-    await cachified({
-      cache,
-      key: 'test',
-      reporter: mergeReporters(
+    await cachified(
+      {
+        cache,
+        key: 'test',
+        getFreshValue() {
+          return 'ONE';
+        },
+      },
+      mergeReporters(
         verboseReporter({ logger: logger1, performance: Date }),
         undefined,
         verboseReporter({ logger: logger2, performance: Date }),
       ),
-      getFreshValue() {
-        return 'ONE';
-      },
-    });
+    );
 
     expect(logger1.print()).toMatchInlineSnapshot(
       `"LOG: 'Updated the cache value for test.' 'Getting a fresh value for this took 0ms.' 'Caching for forever in Map.'"`,

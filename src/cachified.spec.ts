@@ -47,23 +47,27 @@ describe('cachified', () => {
     const reporter = createReporter();
     const reporter2 = createReporter();
 
-    const value = await cachified({
-      cache,
-      key: 'test',
+    const value = await cachified(
+      {
+        cache,
+        key: 'test',
+        getFreshValue() {
+          return 'ONE';
+        },
+      },
       reporter,
-      getFreshValue() {
-        return 'ONE';
-      },
-    });
+    );
 
-    const value2 = await cachified({
-      cache,
-      key: 'test',
-      reporter: reporter2,
-      getFreshValue() {
-        throw new Error('🚧');
+    const value2 = await cachified(
+      {
+        cache,
+        key: 'test',
+        getFreshValue() {
+          throw new Error('🚧');
+        },
       },
-    });
+      reporter2,
+    );
 
     expect(value).toBe('ONE');
     expect(report(reporter.mock.calls)).toMatchInlineSnapshot(`
@@ -187,14 +191,16 @@ describe('cachified', () => {
     const cache = new Map<string, CacheEntry>();
     const reporter = createReporter();
 
-    const value = cachified({
-      cache,
-      key: 'test',
-      reporter,
-      getFreshValue() {
-        throw new Error('🙈');
+    const value = cachified(
+      {
+        cache,
+        key: 'test',
+        getFreshValue() {
+          throw new Error('🙈');
+        },
       },
-    });
+      reporter,
+    );
 
     await expect(value).rejects.toMatchInlineSnapshot(`[Error: 🙈]`);
     expect(report(reporter.mock.calls)).toMatchInlineSnapshot(`
@@ -229,17 +235,19 @@ describe('cachified', () => {
     const reporter = createReporter();
     const reporter2 = createReporter();
 
-    const value = cachified({
-      cache,
-      key: 'test',
+    const value = cachified(
+      {
+        cache,
+        key: 'test',
+        checkValue() {
+          return '👮';
+        },
+        getFreshValue() {
+          return 'ONE';
+        },
+      },
       reporter,
-      checkValue() {
-        return '👮';
-      },
-      getFreshValue() {
-        return 'ONE';
-      },
-    });
+    );
 
     await expect(value).rejects.toThrowErrorMatchingInlineSnapshot(
       `"check failed for fresh value of test"`,
@@ -267,17 +275,19 @@ describe('cachified', () => {
     `);
 
     // The following lines only exist to have 100% coverage 😅
-    const value2 = cachified({
-      cache,
-      key: 'test',
-      reporter: reporter2,
-      checkValue() {
-        return false;
+    const value2 = cachified(
+      {
+        cache,
+        key: 'test',
+        checkValue() {
+          return false;
+        },
+        getFreshValue() {
+          return 'ONE';
+        },
       },
-      getFreshValue() {
-        return 'ONE';
-      },
-    });
+      reporter2,
+    );
     await expect(value2).rejects.toThrowErrorMatchingInlineSnapshot(
       `"check failed for fresh value of test"`,
     );
@@ -389,19 +399,21 @@ describe('cachified', () => {
     const reporter = createReporter();
 
     cache.set('weather', createCacheEntry('☁️'));
-    const value = await cachified({
-      cache,
+    const value = await cachified(
+      {
+        cache,
+        key: 'weather',
+        checkValue(value, migrate) {
+          if (value === '☁️') {
+            return migrate('☀️');
+          }
+        },
+        getFreshValue() {
+          throw new Error('Never');
+        },
+      },
       reporter,
-      key: 'weather',
-      checkValue(value, migrate) {
-        if (value === '☁️') {
-          return migrate('☀️');
-        }
-      },
-      getFreshValue() {
-        throw new Error('Never');
-      },
-    });
+    );
 
     expect(value).toBe('☀️');
     await delay(1);
@@ -423,19 +435,21 @@ describe('cachified', () => {
     const cache = new Map<string, CacheEntry>();
     const reporter = createReporter();
 
-    const value = cachified({
-      cache,
+    const value = cachified(
+      {
+        cache,
+        key: 'weather',
+        async checkValue(value) {
+          if (value === '☁️') {
+            throw new Error('Bad Weather');
+          }
+        },
+        getFreshValue() {
+          return '☁️';
+        },
+      },
       reporter,
-      key: 'weather',
-      async checkValue(value) {
-        if (value === '☁️') {
-          throw new Error('Bad Weather');
-        }
-      },
-      getFreshValue() {
-        return '☁️';
-      },
-    });
+    );
 
     await expect(value).rejects.toThrowErrorMatchingInlineSnapshot(
       `"check failed for fresh value of weather"`,
@@ -457,19 +471,21 @@ describe('cachified', () => {
 
     // Considers anything thrown as an error
 
-    const value2 = cachified({
-      cache,
+    const value2 = cachified(
+      {
+        cache,
+        key: 'weather',
+        async checkValue(value) {
+          if (value === '☁️') {
+            throw { custom: 'idk..' };
+          }
+        },
+        getFreshValue() {
+          return '☁️';
+        },
+      },
       reporter,
-      key: 'weather',
-      async checkValue(value) {
-        if (value === '☁️') {
-          throw { custom: 'idk..' };
-        }
-      },
-      getFreshValue() {
-        return '☁️';
-      },
-    });
+    );
 
     await expect(value2).rejects.toThrowErrorMatchingInlineSnapshot(
       `"check failed for fresh value of weather"`,
@@ -483,30 +499,34 @@ describe('cachified', () => {
     cache.set('weather', createCacheEntry('☁️'));
     const migration = new Deferred<void>();
     const getValue2 = new Deferred<string>();
-    const value = cachified({
-      cache,
+    const value = cachified(
+      {
+        cache,
+        key: 'weather',
+        async checkValue(value, migrate) {
+          if (value === '☁️') {
+            await migration.promise;
+            return migrate('☀️');
+          }
+        },
+        getFreshValue() {
+          throw new Error('Never');
+        },
+      },
       reporter,
-      key: 'weather',
-      async checkValue(value, migrate) {
-        if (value === '☁️') {
-          await migration.promise;
-          return migrate('☀️');
-        }
-      },
-      getFreshValue() {
-        throw new Error('Never');
-      },
-    });
+    );
 
-    const value2 = cachified({
-      cache,
-      reporter,
-      forceFresh: true,
-      key: 'weather',
-      getFreshValue() {
-        return getValue2.promise;
+    const value2 = cachified(
+      {
+        cache,
+        forceFresh: true,
+        key: 'weather',
+        getFreshValue() {
+          return getValue2.promise;
+        },
       },
-    });
+      reporter,
+    );
 
     migration.resolve();
     expect(await value).toBe('☀️');
@@ -579,15 +599,17 @@ describe('cachified', () => {
     const reporter = createReporter();
 
     cache.set('test', createCacheEntry('ONE'));
-    const value2 = await cachified({
-      cache,
-      key: 'test',
-      forceFresh: true,
-      reporter,
-      getFreshValue: () => {
-        throw '🤡';
+    const value2 = await cachified(
+      {
+        cache,
+        key: 'test',
+        forceFresh: true,
+        getFreshValue: () => {
+          throw '🤡';
+        },
       },
-    });
+      reporter,
+    );
 
     expect(value2).toBe('ONE');
     expect(report(reporter.mock.calls)).toMatchInlineSnapshot(`
@@ -614,16 +636,18 @@ describe('cachified', () => {
 
     cache.set('test', createCacheEntry('ONE', { ttl: 5 }));
     currentTime = 15;
-    const value = cachified({
-      cache,
-      key: 'test',
-      forceFresh: true,
-      reporter,
-      fallbackToCache: 10,
-      getFreshValue: () => {
-        throw '🤡';
+    const value = cachified(
+      {
+        cache,
+        key: 'test',
+        forceFresh: true,
+        fallbackToCache: 10,
+        getFreshValue: () => {
+          throw '🤡';
+        },
       },
-    });
+      reporter,
+    );
 
     await expect(value).rejects.toMatchInlineSnapshot(`"🤡"`);
   });
@@ -656,12 +680,14 @@ describe('cachified', () => {
     const reporter = createReporter();
     let i = 0;
     const getValue = () =>
-      cachified({
-        cache,
-        key: 'test',
+      cachified(
+        {
+          cache,
+          key: 'test',
+          getFreshValue: () => `value-${i++}`,
+        },
         reporter,
-        getFreshValue: () => `value-${i++}`,
-      });
+      );
 
     setMock.mockImplementationOnce(() => {
       throw '🔥';
@@ -702,13 +728,15 @@ describe('cachified', () => {
     const reporter = createReporter();
     let i = 0;
     const getValue = () =>
-      cachified({
-        cache,
-        key: 'test',
+      cachified(
+        {
+          cache,
+          key: 'test',
+          ttl: 5,
+          getFreshValue: () => `value-${i++}`,
+        },
         reporter,
-        ttl: 5,
-        getFreshValue: () => `value-${i++}`,
-      });
+      );
 
     expect(await getValue()).toBe('value-0');
 
@@ -763,16 +791,18 @@ describe('cachified', () => {
     const setMock = jest.spyOn(cache, 'set');
     const reporter = createReporter();
 
-    const value = await cachified({
-      cache,
-      key: 'test',
-      ttl: 5,
-      reporter,
-      getFreshValue() {
-        currentTime = 6;
-        return 'ONE';
+    const value = await cachified(
+      {
+        cache,
+        key: 'test',
+        ttl: 5,
+        getFreshValue() {
+          currentTime = 6;
+          return 'ONE';
+        },
       },
-    });
+      reporter,
+    );
 
     expect(value).toBe('ONE');
     expect(setMock).not.toHaveBeenCalled();
@@ -798,12 +828,14 @@ describe('cachified', () => {
     const getValue = (
       getFreshValue: CachifiedOptions<string>['getFreshValue'],
     ) =>
-      cachified({
-        cache,
-        key: 'test',
+      cachified(
+        {
+          cache,
+          key: 'test',
+          getFreshValue,
+        },
         reporter,
-        getFreshValue,
-      });
+      );
 
     const d = new Deferred<string>();
     const pValue1 = getValue(() => d.promise);
@@ -844,13 +876,15 @@ describe('cachified', () => {
     const getValue = (
       getFreshValue: CachifiedOptions<string>['getFreshValue'],
     ) =>
-      cachified({
-        cache,
-        ttl: 5,
-        key: 'test',
+      cachified(
+        {
+          cache,
+          ttl: 5,
+          key: 'test',
+          getFreshValue,
+        },
         reporter,
-        getFreshValue,
-      });
+      );
 
     const d = new Deferred<string>();
     const pValue1 = getValue(() => d.promise);
@@ -868,13 +902,15 @@ describe('cachified', () => {
     const getValue = (
       getFreshValue: CachifiedOptions<string>['getFreshValue'],
     ) =>
-      cachified({
-        cache,
-        ttl: 5,
-        key: 'test',
+      cachified(
+        {
+          cache,
+          ttl: 5,
+          key: 'test',
+          getFreshValue,
+        },
         reporter,
-        getFreshValue,
-      });
+      );
 
     const firstCallMetaDataD = new Deferred<CacheMetadata>();
 
@@ -916,16 +952,18 @@ describe('cachified', () => {
     const cache = new Map<string, CacheEntry>();
     const reporter = createReporter();
 
-    const value = await cachified({
-      cache,
-      ttl: 5,
-      key: 'test',
-      reporter,
-      getFreshValue({ metadata }) {
-        metadata.ttl = -1;
-        return null;
+    const value = await cachified(
+      {
+        cache,
+        ttl: 5,
+        key: 'test',
+        getFreshValue({ metadata }) {
+          metadata.ttl = -1;
+          return null;
+        },
       },
-    });
+      reporter,
+    );
 
     expect(value).toBe(null);
     expect(report(reporter.mock.calls)).toMatchInlineSnapshot(`
@@ -985,14 +1023,16 @@ describe('cachified', () => {
     let i = 0;
     const getFreshValue = jest.fn(() => `value-${i++}`);
     const getValue = () =>
-      cachified({
-        cache,
+      cachified(
+        {
+          cache,
+          key: 'test',
+          ttl: 5,
+          staleWhileRevalidate: 10,
+          getFreshValue,
+        },
         reporter,
-        key: 'test',
-        ttl: 5,
-        staleWhileRevalidate: 10,
-        getFreshValue,
-      });
+      );
 
     expect(await getValue()).toBe('value-0');
     currentTime = 6;
@@ -1127,14 +1167,16 @@ describe('cachified', () => {
     let i = 0;
     const getFreshValue = jest.fn(() => `value-${i++}`);
     const getValue = () =>
-      cachified({
-        cache,
-        key: 'test',
-        ttl: 5,
+      cachified(
+        {
+          cache,
+          key: 'test',
+          ttl: 5,
+          staleWhileRevalidate: 10,
+          getFreshValue,
+        },
         reporter,
-        staleWhileRevalidate: 10,
-        getFreshValue,
-      });
+      );
 
     expect(await getValue()).toBe('value-0');
     currentTime = 6;
@@ -1187,17 +1229,19 @@ describe('cachified', () => {
     const reporter2 = createReporter();
 
     cache.set('test', createCacheEntry('ONE'));
-    const value = await cachified({
-      cache,
-      key: 'test',
+    const value = await cachified(
+      {
+        cache,
+        key: 'test',
+        checkValue(value) {
+          return value === 'TWO';
+        },
+        getFreshValue() {
+          return 'TWO';
+        },
+      },
       reporter,
-      checkValue(value) {
-        return value === 'TWO';
-      },
-      getFreshValue() {
-        return 'TWO';
-      },
-    });
+    );
 
     expect(value).toBe('TWO');
     expect(report(reporter.mock.calls)).toMatchInlineSnapshot(`
@@ -1221,17 +1265,19 @@ describe('cachified', () => {
 
     // the following lines only exist for 100% coverage 😅
     cache.set('test', createCacheEntry('ONE'));
-    const value2 = await cachified({
-      cache,
-      key: 'test',
-      reporter: reporter2,
-      checkValue(value) {
-        return value === 'TWO' ? true : '🖕';
+    const value2 = await cachified(
+      {
+        cache,
+        key: 'test',
+        checkValue(value) {
+          return value === 'TWO' ? true : '🖕';
+        },
+        getFreshValue() {
+          return 'TWO';
+        },
       },
-      getFreshValue() {
-        return 'TWO';
-      },
-    });
+      reporter2,
+    );
     expect(value2).toBe('TWO');
     expect(report(reporter2.mock.calls)).toMatchInlineSnapshot(`
 " 1. init
@@ -1385,14 +1431,16 @@ describe('cachified', () => {
     const cache = new Map<string, any>();
 
     const getValue = (reporter: CreateReporter<string>) =>
-      cachified({
-        cache,
-        key: 'test',
-        reporter,
-        getFreshValue() {
-          return 'ONE';
+      cachified(
+        {
+          cache,
+          key: 'test',
+          getFreshValue() {
+            return 'ONE';
+          },
         },
-      });
+        reporter,
+      );
 
     cache.set('test', 'THIS IS NOT AN OBJECT');
     expect(

@@ -137,6 +137,7 @@ function formatCacheTime(
   return `${formatDuration(metadata.ttl)} + ${formatDuration(swr)} stale`;
 }
 
+export type NoInfer<T> = [T][T extends any ? 0 : never];
 interface ReporterOpts {
   formatDuration?: (ms: number) => string;
   logger?: Pick<typeof console, 'log' | 'warn' | 'error'>;

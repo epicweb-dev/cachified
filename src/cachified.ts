@@ -7,6 +7,7 @@ import {
 } from './common';
 import { CACHE_EMPTY, getCachedValue } from './getCachedValue';
 import { getFreshValue } from './getFreshValue';
+import { CreateReporter } from './reporter';
 import { shouldRefresh } from './shouldRefresh';
 
 // This is to prevent requesting multiple fresh values in parallel
@@ -16,14 +17,17 @@ const pendingValuesByCache = new WeakMap<Cache, Map<string, any>>();
 
 export async function cachified<Value, InternalValue>(
   options: CachifiedOptionsWithSchema<Value, InternalValue>,
+  reporter?: CreateReporter<Value>,
 ): Promise<Value>;
 export async function cachified<Value>(
   options: CachifiedOptions<Value>,
+  reporter?: CreateReporter<Value>,
 ): Promise<Value>;
 export async function cachified<Value>(
   options: CachifiedOptions<Value>,
+  reporter?: CreateReporter<Value>,
 ): Promise<Value> {
-  const context = createContext(options);
+  const context = createContext(options, reporter);
   const { key, cache, forceFresh, report, metadata } = context;
 
   // Register this cache

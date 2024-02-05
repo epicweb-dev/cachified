@@ -175,12 +175,9 @@ export interface CachifiedOptions<Value> {
    */
   staleRefreshTimeout?: number;
   /**
-   * A reporter receives events during the runtime of
-   * cachified and can be used for debugging and monitoring
-   *
-   * Default: `undefined` - no reporting
+   * @deprecated pass reporter as second argument to cachified
    */
-  reporter?: CreateReporter<Value> | null;
+  reporter?: never;
 }
 
 /* When using a schema validator, a strongly typed getFreshValue is not required
@@ -204,12 +201,10 @@ export interface Context<Value>
   metadata: CacheMetadata;
 }
 
-export function createContext<Value>({
-  fallbackToCache,
-  reporter,
-  checkValue,
-  ...options
-}: CachifiedOptions<Value>): Context<Value> {
+export function createContext<Value>(
+  { fallbackToCache, checkValue, ...options }: CachifiedOptions<Value>,
+  reporter?: CreateReporter<Value>,
+): Context<Value> {
   const ttl = options.ttl ?? Infinity;
   const staleWhileRevalidate = options.swr ?? options.staleWhileRevalidate ?? 0;
   const checkValueCompat: CheckValue<Value> =

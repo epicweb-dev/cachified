@@ -52,40 +52,23 @@ npm install @epic-web/cachified
 
 ```ts
 import { LRUCache } from 'lru-cache';
-import { cachified, CacheEntry, Cache, totalTtl } from '@epic-web/cachified';
+import { cachified, CacheEntry, Cache } from '@epic-web/cachified';
 
 /* lru cache is not part of this package but a simple non-persistent cache */
 const lruInstance = new LRUCache<string, CacheEntry>({ max: 1000 });
 
-/* defines options for the set method for lru cache */
-interface LRUishCache extends Omit<Cache, 'set'> {
-  set(
-    key: string,
-    value: CacheEntry<unknown>,
-    options?: { ttl?: number; start?: number },
-  ): void;
-}
-
-/* creates a wrapper for the lru cache so that it can easily work with cachified and ensures the lru cache cleans up outdated values itself*/
-function lruCacheAdapter(lruCache: LRUishCache): Cache {
-  return {
-    set(key, value) {
-      const ttl = totalTtl(value?.metadata);
-      return lruCache.set(key, value, {
-        ttl: ttl === Infinity ? undefined : ttl,
-        start: value?.metadata?.createdTime,
-      });
-    },
-    get(key) {
-      return lruCache.get(key);
-    },
-    delete(key) {
-      return lruCache.delete(key);
-    },
-  };
-}
-
-const lru = lruCacheAdapter(lruInstance);
+const lru: Cache = {
+  /* Note that value here exposes metadata that includes things such as ttl and createdTime */
+  set(key, value) {
+    return lruInstance.set(key, value);
+  },
+  get(key) {
+    return lruInstance.get(key);
+  },
+  delete(key) {
+    return lruInstance.delete(key);
+  },
+};
 
 function getUserById(userId: number) {
   return cachified({

@@ -52,15 +52,18 @@ npm install @epic-web/cachified
 
 ```ts
 import { LRUCache } from 'lru-cache';
-import { cachified, CacheEntry, Cache } from '@epic-web/cachified';
+import { cachified, CacheEntry, Cache, totalTtl } from '@epic-web/cachified';
 
 /* lru cache is not part of this package but a simple non-persistent cache */
 const lruInstance = new LRUCache<string, CacheEntry>({ max: 1000 });
 
 const lru: Cache = {
-  /* Note that value here exposes metadata that includes things such as ttl and createdTime */
   set(key, value) {
-    return lruInstance.set(key, value);
+    const ttl = totalTtl(value?.metadata);
+    return lruInstance.set(key, value, {
+      ttl: ttl === Infinity ? undefined : ttl,
+      start: value?.metadata?.createdTime,
+    });
   },
   get(key) {
     return lruInstance.get(key);

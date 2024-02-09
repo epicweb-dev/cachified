@@ -1,5 +1,4 @@
 import { format } from 'pretty-format';
-import { CacheEntry, CacheMetadata } from './index';
 import { CacheEvent } from './reporter';
 
 export function prettyPrint(value: any) {

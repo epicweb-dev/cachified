@@ -2,10 +2,10 @@
   "compilerOptions": {
     "strict": true,
     "lib": ["ES2022", "DOM"],
-    "target": "ES2016",
+    "target": "ES2022",
     "esModuleInterop": true,
     "outDir": "dist/src",
-    "moduleResolution": "node",
+    "moduleResolution": "Bundler",
     "declaration": true,
     "emitDeclarationOnly": true
   },

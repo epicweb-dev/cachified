@@ -22,8 +22,8 @@ export type Eventually<Value> =
 export interface Cache<Value = unknown> {
   name?: string;
   get: (key: string) => Eventually<CacheEntry<Value>>;
-  set: (key: string, value: CacheEntry<Value>) => Value | Promise<Value>;
-  delete: (key: string) => Value | Promise<Value>;
+  set: (key: string, value: CacheEntry<Value>) => unknown | Promise<unknown>;
+  delete: (key: string) => unknown | Promise<unknown>;
 }
 
 export interface GetFreshValueContext {

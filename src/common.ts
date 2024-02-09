@@ -19,11 +19,11 @@ export type Eventually<Value> =
   | undefined
   | Promise<Value | null | undefined>;
 
-export interface Cache {
+export interface Cache<Value = unknown> {
   name?: string;
-  get: (key: string) => Eventually<CacheEntry<unknown>>;
-  set: (key: string, value: CacheEntry<unknown>) => unknown | Promise<unknown>;
-  delete: (key: string) => unknown | Promise<unknown>;
+  get: (key: string) => Eventually<CacheEntry<Value>>;
+  set: (key: string, value: CacheEntry<Value>) => Value | Promise<Value>;
+  delete: (key: string) => Value | Promise<Value>;
 }
 
 export interface GetFreshValueContext {

@@ -24,7 +24,7 @@ jobs:
     name: 🧪 Test
     strategy:
       matrix:
-        version: [18, 20, 24]
+        version: [18, 20, 21]
         include:
           - version: 20
             coverage: true

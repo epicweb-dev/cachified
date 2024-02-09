@@ -213,13 +213,6 @@ interface CachifiedOptions<Value> {
    * Default: `0`
    */
   staleRefreshTimeout?: number;
-  /**
-   * A reporter receives events during the runtime of
-   * cachified and can be used for debugging and monitoring
-   *
-   * Default: `undefined` - no reporting
-   */
-  reporter?: CreateReporter<Value>;
 }
 ```
 
@@ -790,7 +783,7 @@ console.log(await getUsersWithId([2, 3]));
 
 ### Reporting
 
-A reporter might be passed to cachified to log caching events, we ship a reporter
+A reporter might be passed as second argument to cachified to log caching events, we ship a reporter
 resembling the logging from [Kents implementation](https://github.com/kentcdodds/kentcdodds.com/blob/3efd0d3a07974ece0ee64d665f5e2159a97585df/app/utils/cache.server.ts)
 
 <!-- verbose-reporter -->
@@ -800,18 +793,19 @@ import { cachified, verboseReporter } from '@epic-web/cachified';
 
 const cache = new Map();
 
-await cachified({
-  reporter: verboseReporter(),
-
-  cache,
-  key: 'user-1',
-  async getFreshValue() {
-    const response = await fetch(
-      `https://jsonplaceholder.typicode.com/users/1`,
-    );
-    return response.json();
+await cachified(
+  {
+    cache,
+    key: 'user-1',
+    async getFreshValue() {
+      const response = await fetch(
+        `https://jsonplaceholder.typicode.com/users/1`,
+      );
+      return response.json();
+    },
   },
-});
+  verboseReporter(),
+);
 ```
 
 please refer to [the implementation of `verboseReporter`](https://github.com/epicweb-dev/cachified/blob/main/src/reporter.ts#L125) when you want to implement a custom reporter.

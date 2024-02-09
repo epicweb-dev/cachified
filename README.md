@@ -52,10 +52,26 @@ npm install @epic-web/cachified
 
 ```ts
 import { LRUCache } from 'lru-cache';
-import { cachified, CacheEntry } from '@epic-web/cachified';
+import { cachified, CacheEntry, Cache, totalTtl } from '@epic-web/cachified';
 
 /* lru cache is not part of this package but a simple non-persistent cache */
-const lru = new LRUCache<string, CacheEntry>({ max: 1000 });
+const lruInstance = new LRUCache<string, CacheEntry>({ max: 1000 });
+
+const lru: Cache = {
+  set(key, value) {
+    const ttl = totalTtl(value?.metadata);
+    return lruInstance.set(key, value, {
+      ttl: ttl === Infinity ? undefined : ttl,
+      start: value?.metadata?.createdTime,
+    });
+  },
+  get(key) {
+    return lruInstance.get(key);
+  },
+  delete(key) {
+    return lruInstance.delete(key);
+  },
+};
 
 function getUserById(userId: number) {
   return cachified({
@@ -218,129 +234,11 @@ interface CachifiedOptions<Value> {
 
 ## Adapters
 
-There are some build-in adapters for common caches, using them makes sure
-the used caches cleanup outdated values themselves.
+There are some adapters available for common caches. Using them makes sure the used caches cleanup outdated values themselves.
 
-### Adapter for [lru-cache](https://www.npmjs.com/package/lru-cache)
-
-<!-- lru-adapter -->
-
-```ts
-import { LRUCache } from 'lru-cache';
-import { cachified, lruCacheAdapter, CacheEntry } from '@epic-web/cachified';
-
-const lru = new LRUCache<string, CacheEntry>({ max: 1000 });
-const cache = lruCacheAdapter(lru);
-
-await cachified({
-  cache,
-  key: 'user-1',
-  getFreshValue() {
-    return 'user@example.org';
-  },
-});
-```
-
-### Adapter for [redis](https://www.npmjs.com/package/redis)
-
-<!-- redis-adapter -->
-
-```ts
-import { createClient } from 'redis';
-import { cachified, redisCacheAdapter } from '@epic-web/cachified';
-
-const redis = createClient({
-  /* ...opts */
-});
-const cache = redisCacheAdapter(redis);
-
-await cachified({
-  cache,
-  key: 'user-1',
-  getFreshValue() {
-    return 'user@example.org';
-  },
-});
-```
-
-### Adapter for [redis@3](https://www.npmjs.com/package/redis/v/3.1.2)
-
-<!-- redis-3-adapter -->
-
-```ts
-import { createClient } from 'redis';
-import { cachified, redis3CacheAdapter } from '@epic-web/cachified';
-
-const redis = createClient({
-  /* ...opts */
-});
-const cache = redis3CacheAdapter(redis);
-
-const data = await cachified({
-  cache,
-  key: 'user-1',
-  getFreshValue() {
-    return 'user@example.org';
-  },
-});
-```
-
-### Adapter for [Cloudflare KV](https://developers.cloudflare.com/kv/)
-
-For additional information or to report issues, please visit the [cachified-adapter-cloudflare-kv repository](https://github.com/AdiRishi/cachified-adapter-cloudflare-kv).
-
-```ts
-import { cachified, Cache } from '@epic-web/cachified';
-import { cloudflareKvCacheAdapter } from 'cachified-adapter-cloudflare-kv';
-
-export interface Env {
-  KV: KVNamespace;
-  CACHIFIED_KV_CACHE: Cache;
-}
-
-export async function getUserById(
-  userId: number,
-  env: Env,
-): Promise<Record<string, unknown>> {
-  return cachified({
-    key: `user-${userId}`,
-    cache: env.CACHIFIED_KV_CACHE,
-    async getFreshValue() {
-      const response = await fetch(
-        `https://jsonplaceholder.typicode.com/users/${userId}`,
-      );
-      return response.json();
-    },
-    ttl: 60_000, // 1 minute
-    staleWhileRevalidate: 300_000, // 5 minutes
-  });
-}
-
-export default {
-  async fetch(
-    request: Request,
-    env: Env,
-    ctx: ExecutionContext,
-  ): Promise<Response> {
-    env.CACHIFIED_KV_CACHE = cloudflareKvCacheAdapter({
-      kv: env.KV,
-      keyPrefix: 'mycache', // optional
-      name: 'CloudflareKV', // optional
-    });
-    const userId = Math.floor(Math.random() * 10) + 1;
-    const user = await getUserById(userId, env);
-    return new Response(JSON.stringify(user), {
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    });
-  },
-};
-```
-
-### Adapter for [redis-json](https://www.npmjs.com/package/@redis/json)
-
-[cachified-redis-json-adapter](https://www.npmjs.com/package/cachified-redis-json-adapter)
+- Adapter for [redis](https://www.npmjs.com/package/redis) : [cachified-redis-adapter](https://www.npmjs.com/package/cachified-redis-adapter)
+- Adapter for [redis-json](https://www.npmjs.com/package/@redis/json) : [cachified-redis-json-adapter](https://www.npmjs.com/package/cachified-redis-json-adapter)
+- Adapter for [Cloudflare KV](https://developers.cloudflare.com/kv/) : [cachified-adapter-cloudflare-kv repository](https://github.com/AdiRishi/cachified-adapter-cloudflare-kv)
 
 ## Advanced Usage
 

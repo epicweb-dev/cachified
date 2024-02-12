@@ -19,7 +19,7 @@ export type Eventually<Value> =
   | undefined
   | Promise<Value | null | undefined>;
 
-export interface Cache<Value = unknown> {
+export interface Cache<Value = any> {
   name?: string;
   get: (key: string) => Eventually<CacheEntry<Value>>;
   set: (key: string, value: CacheEntry<Value>) => unknown | Promise<unknown>;

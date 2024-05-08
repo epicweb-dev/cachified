@@ -151,8 +151,8 @@ describe('verbose reporter', () => {
   });
 
   it('falls back to Date when performance is not globally available', async () => {
-    const backup = global.performance;
-    delete (global as any).performance;
+    const backup = globalThis.performance;
+    delete (globalThis as any).performance;
     const cache = new Map<string, CacheEntry>();
     const logger = createLogger();
 
@@ -165,7 +165,7 @@ describe('verbose reporter', () => {
       verboseReporter({ logger }),
     );
 
-    (global as any).performance = backup;
+    (globalThis as any).performance = backup;
     expect(Date.now).toBeCalledTimes(3);
   });
 

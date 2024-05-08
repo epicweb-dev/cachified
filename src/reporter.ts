@@ -146,7 +146,7 @@ interface ReporterOpts {
 export function verboseReporter<Value>({
   formatDuration = defaultFormatDuration,
   logger = console,
-  performance = global.performance || Date,
+  performance = globalThis.performance || Date,
 }: ReporterOpts = {}): CreateReporter<Value> {
   return ({ key, fallbackToCache, forceFresh, metadata, cache }) => {
     const cacheName =

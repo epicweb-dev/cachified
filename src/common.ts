@@ -178,6 +178,15 @@ export interface CachifiedOptions<Value> {
    * @deprecated pass reporter as second argument to cachified
    */
   reporter?: never;
+  /**
+   * Promises passed to `waitUntil` represent background tasks which must be
+   * completed before the server can shutdown. e.g. swr cache revalidation
+   *
+   * Useful for serverless environments such as Cloudflare Workers.
+   *
+   * Default: `undefined`
+   */
+  waitUntil?: (promise: Promise<unknown>) => void;
 }
 
 /* When using a schema validator, a strongly typed getFreshValue is not required
@@ -229,6 +238,7 @@ export function createContext<Value>(
     forceFresh: false,
     ...options,
     metadata: createCacheMetaData({ ttl, swr: staleWhileRevalidate }),
+    waitUntil: options.waitUntil ?? (() => {}),
   };
 
   const report =

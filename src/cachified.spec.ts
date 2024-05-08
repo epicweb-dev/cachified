@@ -393,6 +393,7 @@ describe('cachified', () => {
     const reporter = createReporter();
 
     cache.set('weather', createCacheEntry('☁️'));
+    const waitUntil = jest.fn();
     const value = await cachified(
       {
         cache,
@@ -405,12 +406,17 @@ describe('cachified', () => {
         getFreshValue() {
           throw new Error('Never');
         },
+        waitUntil,
       },
       reporter,
     );
 
     expect(value).toBe('☀️');
-    await delay(1);
+    expect(cache.get('weather')?.value).toBe('☁️');
+    expect(waitUntil).toHaveBeenCalledTimes(1);
+    expect(waitUntil).toHaveBeenCalledWith(expect.any(Promise));
+    // Wait for promise (migration is done in background)
+    await waitUntil.mock.calls[0][0];
     expect(cache.get('weather')?.value).toBe('☀️');
     expect(report(reporter.mock.calls)).toMatchInlineSnapshot(`
 "1. init
@@ -1016,6 +1022,7 @@ describe('cachified', () => {
     const reporter = createReporter();
     let i = 0;
     const getFreshValue = jest.fn(() => `value-${i++}`);
+    const waitUntil = jest.fn();
     const getValue = () =>
       cachified(
         {
@@ -1024,6 +1031,7 @@ describe('cachified', () => {
           ttl: 5,
           staleWhileRevalidate: 10,
           getFreshValue,
+          waitUntil,
         },
         reporter,
       );
@@ -1031,13 +1039,17 @@ describe('cachified', () => {
     expect(await getValue()).toBe('value-0');
     currentTime = 6;
     // receive cached response since call exceeds ttl but is in stale while revalidate range
+    expect(cache.get('test')?.value).toBe('value-0');
     expect(await getValue()).toBe('value-0');
-    // wait for next tick (revalidation is done in background)
-    await delay(0);
+    // wait for promise (revalidation is done in background)
+    expect(waitUntil).toHaveBeenCalledTimes(1);
+    expect(waitUntil).toHaveBeenCalledWith(expect.any(Promise));
+    await waitUntil.mock.calls[0][0];
     // We don't care about the latter calls
     const calls = [...reporter.mock.calls];
 
     // next call gets the revalidated response
+    expect(cache.get('test')?.value).toBe('value-1');
     expect(await getValue()).toBe('value-1');
 
     const getFreshValueCalls = getFreshValue.mock.calls as any as Parameters<

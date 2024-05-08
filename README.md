@@ -229,6 +229,15 @@ interface CachifiedOptions<Value> {
    * Default: `0`
    */
   staleRefreshTimeout?: number;
+  /**
+   * Promises passed to `waitUntil` represent background tasks which must be
+   * completed before the server can shutdown. e.g. swr cache revalidation
+   *
+   * Useful for serverless environments such as Cloudflare Workers.
+   *
+   * Default: `undefined`
+   */
+  waitUntil?: (promise: Promise<unknown>) => void;
 }
 ```
 

@@ -53,23 +53,26 @@ export async function getCachedValue<Value>(
 
     if (staleRefresh) {
       // refresh cache in background so future requests are faster
-      setTimeout(() => {
-        report({ name: 'refreshValueStart' });
-        void cachified({
-          ...context,
-          getFreshValue({ metadata }) {
-            return context.getFreshValue({ metadata, background: true });
-          },
-          forceFresh: true,
-          fallbackToCache: false,
-        })
-          .then((value) => {
-            report({ name: 'refreshValueSuccess', value });
+      context.waitUntil(
+        Promise.resolve().then(async () => {
+          await sleep(staleRefreshTimeout);
+          report({ name: 'refreshValueStart' });
+          await cachified({
+            ...context,
+            getFreshValue({ metadata }) {
+              return context.getFreshValue({ metadata, background: true });
+            },
+            forceFresh: true,
+            fallbackToCache: false,
           })
-          .catch((error) => {
-            report({ name: 'refreshValueError', error });
-          });
-      }, staleRefreshTimeout);
+            .then((value) => {
+              report({ name: 'refreshValueSuccess', value });
+            })
+            .catch((error) => {
+              report({ name: 'refreshValueError', error });
+            });
+        }),
+      );
     }
 
     if (!refresh || staleRefresh) {
@@ -86,27 +89,30 @@ export async function getCachedValue<Value>(
         }
 
         if (valueCheck.migrated) {
-          setTimeout(async () => {
-            try {
-              const cached = await context.cache.get(context.key);
+          context.waitUntil(
+            Promise.resolve().then(async () => {
+              try {
+                await sleep(0); // align with original setTimeout behavior (allowing other microtasks/tasks to run)
+                const cached = await context.cache.get(context.key);
 
-              // Unless cached value was changed in the meantime or is about to
-              // change
-              if (
-                cached &&
-                cached.metadata.createdTime === metadata.createdTime &&
-                !hasPendingValue()
-              ) {
-                // update with migrated value
-                await context.cache.set(context.key, {
-                  ...cached,
-                  value: valueCheck.value,
-                });
+                // Unless cached value was changed in the meantime or is about to
+                // change
+                if (
+                  cached &&
+                  cached.metadata.createdTime === metadata.createdTime &&
+                  !hasPendingValue()
+                ) {
+                  // update with migrated value
+                  await context.cache.set(context.key, {
+                    ...cached,
+                    value: valueCheck.value,
+                  });
+                }
+              } catch (err) {
+                /* ¯\_(ツ)_/¯ */
               }
-            } catch (err) {
-              /* ¯\_(ツ)_/¯ */
-            }
-          }, 0);
+            }),
+          );
         }
 
         return valueCheck.value;
@@ -130,4 +136,8 @@ export async function getCachedValue<Value>(
   }
 
   return CACHE_EMPTY;
+}
+
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }

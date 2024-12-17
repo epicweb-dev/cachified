@@ -248,6 +248,7 @@ There are some adapters available for common caches. Using them makes sure the u
 - Adapter for [redis](https://www.npmjs.com/package/redis) : [cachified-redis-adapter](https://www.npmjs.com/package/cachified-redis-adapter)
 - Adapter for [redis-json](https://www.npmjs.com/package/@redis/json) : [cachified-redis-json-adapter](https://www.npmjs.com/package/cachified-redis-json-adapter)
 - Adapter for [Cloudflare KV](https://developers.cloudflare.com/kv/) : [cachified-adapter-cloudflare-kv repository](https://github.com/AdiRishi/cachified-adapter-cloudflare-kv)
+- Adapter for SQLite : [cachified-adapter-sqlite](https://npmjs.com/package/cachified-adapter-sqlite)
 
 ## Advanced Usage
 

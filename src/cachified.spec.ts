@@ -17,6 +17,7 @@ import {
 import { Deferred } from './createBatch';
 import { delay, report } from './testHelpers';
 import { StandardSchemaV1 } from './StandardSchemaV1';
+import { configure } from './configure';
 
 jest.mock('./index', () => {
   if (process.version.startsWith('v20')) {
@@ -1464,6 +1465,41 @@ describe('cachified', () => {
     expect(cache.get('test-2')).toBe(undefined);
   });
 
+  it('de-duplicates batched cache calls', async () => {
+    const cache = new Map<string, CacheEntry>();
+
+    function getValues(indexes: number[], callId: number) {
+      const batch = createBatch((freshIndexes: number[]) =>
+        freshIndexes.map((i) => `value-${i}-call-${callId}`),
+      );
+
+      return Promise.all(
+        indexes.map((index) =>
+          cachified({
+            cache,
+            key: `test-${index}`,
+            ttl: Infinity,
+            getFreshValue: batch.add(index),
+          }),
+        ),
+      );
+    }
+
+    const batch1 = getValues([1, 2, 3], 1);
+    const batch2 = getValues([1, 2, 5], 2);
+
+    expect(await batch1).toEqual([
+      'value-1-call-1',
+      'value-2-call-1',
+      'value-3-call-1',
+    ]);
+    expect(await batch2).toEqual([
+      'value-1-call-1',
+      'value-2-call-1',
+      'value-5-call-2',
+    ]);
+  });
+
   it('does not invoke onValue when value comes from cache', async () => {
     const cache = new Map<string, CacheEntry>();
     const onValue = jest.fn();
@@ -1551,6 +1587,22 @@ describe('cachified', () => {
       metadata: { ttl: null, swr: null, createdTime: Date.now() },
     });
     expect(await getValue(() => () => {})).toBe('FOUR');
+  });
+
+  it('supports creating pre-configured cachified functions', async () => {
+    const configuredCachified = configure({
+      cache: new Map(),
+    });
+
+    const value = await configuredCachified({
+      key: 'test',
+      // look mom, no cache!
+      getFreshValue() {
+        return 'ONE';
+      },
+    });
+
+    expect(value).toBe('ONE');
   });
 });
 

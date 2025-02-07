@@ -1,6 +1,6 @@
 import { Cache, createCacheEntry, staleWhileRevalidate } from './common';
 import { CACHE_EMPTY, getCacheEntry } from './getCachedValue';
-import { shouldRefresh } from './shouldRefresh';
+import { isExpired } from './isExpired';
 
 interface SoftPurgeOpts {
   cache: Cache;
@@ -23,7 +23,7 @@ export async function softPurge({
   const swrOverwrite = swrOverwrites.swr ?? swrOverwrites.staleWhileRevalidate;
   const entry = await getCacheEntry({ cache, key }, () => {});
 
-  if (entry === CACHE_EMPTY || shouldRefresh(entry.metadata)) {
+  if (entry === CACHE_EMPTY || isExpired(entry.metadata)) {
     return;
   }
 

@@ -12,6 +12,7 @@ export * from './reporter';
 export { createBatch } from './createBatch';
 export { cachified } from './cachified';
 export { cachified as default } from './cachified';
-export { shouldRefresh } from './shouldRefresh';
+export { shouldRefresh, isExpired } from './isExpired';
 export { assertCacheEntry } from './assertCacheEntry';
 export { softPurge } from './softPurge';
+export { configure } from './configure';

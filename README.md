@@ -447,6 +447,28 @@ console.log(await getUserById(1));
 // Cache was filled an valid. `getFreshValue` was not invoked
 ```
 
+### Pre-configuring cachified
+
+We can create versions of cachified with defaults so that we don't have to
+specify the same options every time.
+
+<!-- pre-configured-cachified -->
+
+```ts
+import { configure } from '@epic-web/cachified';
+import { LRUCache } from 'lru-cache';
+
+/* lruCachified now has a default cache */
+const lruCachified = configure({
+  cache: new LRUCache<string, CacheEntry>({ max: 1000 }),
+});
+
+const value = await lruCachified({
+  key: 'user-1',
+  getFreshValue: async () => 'ONE',
+});
+```
+
 ### Manually working with the cache
 
 During normal app lifecycle there usually is no need for this but for

@@ -1,4 +1,5 @@
 import type { CreateReporter, Reporter } from './reporter';
+import { StandardSchemaV1 } from './StandardSchemaV1';
 
 export interface CacheMetadata {
   createdTime: number;
@@ -51,10 +52,17 @@ export type ValueCheckResultInvalid = false | string;
 export type ValueCheckResult<Value> =
   | ValueCheckResultOk<Value>
   | ValueCheckResultInvalid;
+
 export type CheckValue<Value> = (
   value: unknown,
   migrate: (value: Value, updateCache?: boolean) => MigratedValue<Value>,
 ) => ValueCheckResult<Value> | Promise<ValueCheckResult<Value>>;
+
+/**
+ * @deprecated use a library supporting Standard Schema
+ * @see https://github.com/standard-schema/standard-schema?tab=readme-ov-file#what-schema-libraries-implement-the-spec
+ * @todo remove in next major version
+ */
 export interface Schema<Value, InputValue> {
   _input: InputValue;
   parseAsync(value: unknown): Promise<Value>;
@@ -122,10 +130,11 @@ export interface CachifiedOptions<Value> {
   /**
    * Validator that checks every cached and fresh value to ensure type safety
    *
-   * Can be a zod schema or a custom validator function
+   * Can be a standard schema validator or a custom validator function
+   * @see https://github.com/standard-schema/standard-schema?tab=readme-ov-file#what-schema-libraries-implement-the-spec
    *
    * Value considered ok when:
-   *  - zod schema.parseAsync succeeds
+   *  - schema succeeds
    *  - validator returns
    *    - true
    *    - migrate(newValue)
@@ -133,7 +142,7 @@ export interface CachifiedOptions<Value> {
    *    - null
    *
    * Value considered bad when:
-   *  - zod schema.parseAsync throws
+   *  - schema throws
    *  - validator:
    *    - returns false
    *    - returns reason as string
@@ -141,11 +150,14 @@ export interface CachifiedOptions<Value> {
    *
    * A validator function receives two arguments:
    *  1. the value
-   *  2. a migrate callback, see https://github.com/Xiphe/cachified#migrating-values
+   *  2. a migrate callback, see https://github.com/epicweb-dev/cachified#migrating-values
    *
    * Default: `undefined` - no validation
    */
-  checkValue?: CheckValue<Value> | Schema<Value, unknown>;
+  checkValue?:
+    | CheckValue<Value>
+    | StandardSchemaV1<unknown, Value>
+    | Schema<Value, unknown>;
   /**
    * Set true to not even try reading the currently cached value
    *
@@ -195,7 +207,7 @@ export type CachifiedOptionsWithSchema<Value, InternalValue> = Omit<
   CachifiedOptions<Value>,
   'checkValue' | 'getFreshValue'
 > & {
-  checkValue: Schema<Value, InternalValue>;
+  checkValue: StandardSchemaV1<unknown, Value> | Schema<Value, InternalValue>;
   getFreshValue: GetFreshValue<InternalValue>;
 };
 
@@ -210,6 +222,33 @@ export interface Context<Value>
   metadata: CacheMetadata;
 }
 
+function validateWithSchema<Value>(
+  checkValue: StandardSchemaV1<unknown, Value> | Schema<Value, unknown>,
+): CheckValue<Value> {
+  return async (value, migrate) => {
+    let validatedValue;
+
+    /* Standard Schema validation
+       https://github.com/standard-schema/standard-schema?tab=readme-ov-file#how-do-i-accept-standard-schemas-in-my-library */
+    if ('~standard' in checkValue) {
+      let result = checkValue['~standard'].validate(value);
+      if (result instanceof Promise) result = await result;
+
+      if (result.issues) {
+        throw result.issues;
+      }
+
+      validatedValue = result.value;
+    } else {
+      /* Legacy Schema validation for zod only
+         TODO: remove in next major version */
+      validatedValue = await checkValue.parseAsync(value);
+    }
+
+    return migrate(validatedValue, false);
+  };
+}
+
 export function createContext<Value>(
   { fallbackToCache, checkValue, ...options }: CachifiedOptions<Value>,
   reporter?: CreateReporter<Value>,
@@ -220,8 +259,7 @@ export function createContext<Value>(
     typeof checkValue === 'function'
       ? checkValue
       : typeof checkValue === 'object'
-      ? (value, migrate) =>
-          checkValue.parseAsync(value).then((v) => migrate(v, false))
+      ? validateWithSchema(checkValue)
       : () => true;
 
   const contextWithoutReport = {

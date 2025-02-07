@@ -177,10 +177,11 @@ interface CachifiedOptions<Value> {
   /**
    * Validator that checks every cached and fresh value to ensure type safety
    *
-   * Can be a zod schema or a custom validator function
+   * Can be a standard schema validator or a custom validator function
+   * @see https://github.com/standard-schema/standard-schema?tab=readme-ov-file#what-schema-libraries-implement-the-spec
    *
    * Value considered ok when:
-   *  - zod schema.parseAsync succeeds
+   *  - schema succeeds
    *  - validator returns
    *    - true
    *    - migrate(newValue)
@@ -188,7 +189,7 @@ interface CachifiedOptions<Value> {
    *    - null
    *
    * Value considered bad when:
-   *  - zod schema.parseAsync throws
+   *  - schema throws
    *  - validator:
    *    - returns false
    *    - returns reason as string
@@ -200,7 +201,10 @@ interface CachifiedOptions<Value> {
    *
    * Default: `undefined` - no validation
    */
-  checkValue?: CheckValue<Value> | Schema<Value, unknown>;
+  checkValue?:
+    | CheckValue<Value>
+    | StandardSchemaV1<unknown, Value>
+    | Schema<Value, unknown>;
   /**
    * Set true to not even try reading the currently cached value
    *
@@ -406,9 +410,9 @@ console.log(await getUserById(1));
 
 > ℹ️ `checkValue` is also invoked with the return value of `getFreshValue`
 
-### Type-safety with [zod](https://github.com/colinhacks/zod)
+### Type-safety with [schema libraries](https://github.com/standard-schema/standard-schema?tab=readme-ov-file#what-schema-libraries-implement-the-spec)
 
-We can also use zod schemas to ensure correct types
+We can also use zod, valibot or other libraries implementing the standard schema spec to ensure correct types
 
 <!-- type-safety-zod -->
 

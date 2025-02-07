@@ -1,7 +1,7 @@
 import { Context, CacheEntry } from './common';
 import { assertCacheEntry } from './assertCacheEntry';
 import { HANDLE } from './common';
-import { shouldRefresh } from './shouldRefresh';
+import { isExpired } from './isExpired';
 import { cachified } from './cachified';
 import { Reporter } from './reporter';
 import { checkValue } from './checkValue';
@@ -42,12 +42,12 @@ export async function getCachedValue<Value>(
       return CACHE_EMPTY;
     }
 
-    const refresh = shouldRefresh(cached.metadata);
+    const expired = isExpired(cached.metadata);
     const staleRefresh =
-      refresh === 'stale' ||
-      (refresh === 'now' && staleWhileRevalidate === Infinity);
+      expired === 'stale' ||
+      (expired === true && staleWhileRevalidate === Infinity);
 
-    if (refresh === 'now') {
+    if (expired === true) {
       report({ name: 'getCachedValueOutdated', ...cached });
     }
 
@@ -75,7 +75,7 @@ export async function getCachedValue<Value>(
       );
     }
 
-    if (!refresh || staleRefresh) {
+    if (!expired || staleRefresh) {
       const valueCheck = await checkValue(context, cached.value);
       if (valueCheck.success) {
         report({

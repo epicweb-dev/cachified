@@ -1,6 +1,6 @@
 import { Context, CacheMetadata, createCacheEntry } from './common';
 import { getCacheEntry, CACHE_EMPTY } from './getCachedValue';
-import { shouldRefresh } from './shouldRefresh';
+import { isExpired } from './isExpired';
 import { Reporter } from './reporter';
 import { checkValue } from './checkValue';
 
@@ -59,7 +59,8 @@ export async function getFreshValue<Value>(
   }
 
   try {
-    const write = shouldRefresh(metadata) !== 'now';
+    /* Only write to cache when the value has not already fully expired while getting it */
+    const write = isExpired(metadata) !== true;
     if (write) {
       await cache.set(key, createCacheEntry(value, metadata));
     }

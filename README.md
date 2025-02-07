@@ -480,6 +480,7 @@ maintenance and testing these helpers might come handy.
 import {
   createCacheEntry,
   assertCacheEntry,
+  isExpired,
   cachified,
 } from '@epic-web/cachified';
 
@@ -511,6 +512,11 @@ const entry: unknown = cache.get('user-1');
 assertCacheEntry(entry); // will throw when entry is not a valid CacheEntry
 console.log(entry.value);
 // > logs "someone@example.org"
+
+/* Manually check if an entry is expired */
+const expired = isExpired(entry.metadata);
+console.log(expired);
+// > logs true, "stale" or false
 
 /* Manually remove an entry from cache */
 cache.delete('user-1');

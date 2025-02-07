@@ -4,6 +4,7 @@ import {
   Cache,
   CacheEntry,
   createContext,
+  HANDLE,
 } from './common';
 import { CACHE_EMPTY, getCachedValue } from './getCachedValue';
 import { getFreshValue } from './getFreshValue';
@@ -53,6 +54,8 @@ export async function cachified<Value>(
   if (pendingValues.has(key)) {
     const { value: pendingRefreshValue, metadata } = pendingValues.get(key)!;
     if (!shouldRefresh(metadata)) {
+      /* Notify batch that we handled this call using pending value */
+      context.getFreshValue[HANDLE]?.();
       report({ name: 'getFreshValueHookPending' });
       const value = await pendingRefreshValue;
       report({ name: 'done', value });

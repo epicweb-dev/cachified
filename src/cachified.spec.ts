@@ -1500,6 +1500,33 @@ describe('cachified', () => {
     ]);
   });
 
+  it('de-duplicates duplicated keys within a batch', async () => {
+    const cache = new Map<string, CacheEntry>();
+
+    let i = 0;
+    const batch = createBatch((freshIndexes: number[]) =>
+      freshIndexes.map((j) => `value-${j}-call-${i++}`),
+    );
+
+    const results = await Promise.all(
+      [1, 2, 3, 1].map((index) =>
+        cachified({
+          cache,
+          key: `test-${index}`,
+          ttl: Infinity,
+          getFreshValue: batch.add(index),
+        }),
+      ),
+    );
+
+    expect(results).toEqual([
+      'value-1-call-0',
+      'value-2-call-1',
+      'value-3-call-2',
+      'value-1-call-0',
+    ]);
+  });
+
   it('does not invoke onValue when value comes from cache', async () => {
     const cache = new Map<string, CacheEntry>();
     const onValue = jest.fn();

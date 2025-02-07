@@ -9,7 +9,7 @@ import {
 import { CACHE_EMPTY, getCachedValue } from './getCachedValue';
 import { getFreshValue } from './getFreshValue';
 import { CreateReporter } from './reporter';
-import { shouldRefresh } from './shouldRefresh';
+import { isExpired } from './isExpired';
 
 // This is to prevent requesting multiple fresh values in parallel
 // while revalidating or getting first value
@@ -53,7 +53,8 @@ export async function cachified<Value>(
 
   if (pendingValues.has(key)) {
     const { value: pendingRefreshValue, metadata } = pendingValues.get(key)!;
-    if (!shouldRefresh(metadata)) {
+
+    if (!isExpired(metadata)) {
       /* Notify batch that we handled this call using pending value */
       context.getFreshValue[HANDLE]?.();
       report({ name: 'getFreshValueHookPending' });

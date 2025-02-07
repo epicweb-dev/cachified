@@ -1,4 +1,8 @@
-import z from 'zod';
+/*
+ TODO(next-major): remove zod-legacy in favor of zod@>3.24
+ and update tests to only use standard schema
+*/
+import z from 'zod-legacy';
 import {
   cachified,
   CachifiedOptions,
@@ -12,6 +16,7 @@ import {
 } from './index';
 import { Deferred } from './createBatch';
 import { delay, report } from './testHelpers';
+import { StandardSchemaV1 } from './StandardSchemaV1';
 import { configure } from './configure';
 
 jest.mock('./index', () => {
@@ -387,6 +392,52 @@ describe('cachified', () => {
 
     /* Gets transformed value from cache */
     expect(await getValue()).toBe(123);
+  });
+
+  it('supports Standard Schema as validators', async () => {
+    //  Implement the schema interface
+    const checkValue: StandardSchemaV1<string, number> = {
+      '~standard': {
+        version: 1,
+        vendor: 'cachified-test',
+        validate(value) {
+          return typeof value === 'string'
+            ? { value: parseInt(value, 10) }
+            : { issues: [{ message: '🙅' }] };
+        },
+      },
+    };
+
+    const cache = new Map<string, CacheEntry>();
+
+    const value = await cachified({
+      cache,
+      key: 'test',
+      checkValue,
+      getFreshValue() {
+        return '123';
+      },
+    });
+
+    expect(value).toBe(123);
+
+    const invalidValue = cachified({
+      cache,
+      key: 'test-2',
+      checkValue,
+      getFreshValue() {
+        return { invalid: 'value' };
+      },
+    });
+
+    await expect(invalidValue).rejects.toThrowErrorMatchingInlineSnapshot(
+      `"check failed for fresh value of test-2"`,
+    );
+    await ignoreNode14(() =>
+      expect(
+        invalidValue.catch((err) => err.cause[0].message),
+      ).resolves.toMatchInlineSnapshot(`"🙅"`),
+    );
   });
 
   it('supports migrating cached values', async () => {

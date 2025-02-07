@@ -15,3 +15,4 @@ export { cachified as default } from './cachified';
 export { shouldRefresh } from './shouldRefresh';
 export { assertCacheEntry } from './assertCacheEntry';
 export { softPurge } from './softPurge';
+export { configure } from './configure';

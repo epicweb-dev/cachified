@@ -12,6 +12,7 @@ import {
 } from './index';
 import { Deferred } from './createBatch';
 import { delay, report } from './testHelpers';
+import { configure } from './configure';
 
 jest.mock('./index', () => {
   if (process.version.startsWith('v20')) {
@@ -1535,6 +1536,22 @@ describe('cachified', () => {
       metadata: { ttl: null, swr: null, createdTime: Date.now() },
     });
     expect(await getValue(() => () => {})).toBe('FOUR');
+  });
+
+  it('supports creating pre-configured cachified functions', async () => {
+    const configuredCachified = configure({
+      cache: new Map(),
+    });
+
+    const value = await configuredCachified({
+      key: 'test',
+      // look mom, no cache!
+      getFreshValue() {
+        return 'ONE';
+      },
+    });
+
+    expect(value).toBe('ONE');
   });
 });
 

@@ -242,7 +242,7 @@ export function verboseReporter<Value>({
           );
           break;
         case 'refreshValueError':
-          logger.log(`Background refresh for ${key} failed.`, event.error);
+          logger.error(`Background refresh for ${key} failed.`, event.error);
           break;
       }
     };

@@ -235,7 +235,7 @@ describe('verbose reporter', () => {
 
     await delay(0);
     expect(logger.print()).toMatchInlineSnapshot(
-      `"LOG: 'Background refresh for test failed.' [Error: 🧨]"`,
+      `"ERROR: 'Background refresh for test failed.' [Error: 🧨]"`,
     );
   });
 });

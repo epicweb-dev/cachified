@@ -58,6 +58,12 @@ export async function getCachedValue<Value>(
           await cachified({
             ...context,
             async getFreshValue({ metadata }) {
+              /* TODO: When staleRefreshTimeout option is removed we should
+               also remove this or set it to ~0-200ms depending on ttl values.
+               The intention of the delay is to not take sync resources for
+               background refreshing – still we need to queue the refresh
+               directly so that the de-duplication works.
+               See https://github.com/epicweb-dev/cachified/issues/132 */
               await sleep(staleRefreshTimeout);
               report({ name: 'refreshValueStart' });
               return context.getFreshValue({ metadata, background: true });

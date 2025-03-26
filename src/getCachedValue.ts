@@ -54,30 +54,28 @@ export async function getCachedValue<Value>(
     if (staleRefresh) {
       // refresh cache in background so future requests are faster
       context.waitUntil(
-        Promise.resolve().then(async () => {
-          await cachified({
-            ...context,
-            async getFreshValue({ metadata }) {
-              /* TODO: When staleRefreshTimeout option is removed we should
+        cachified({
+          ...context,
+          async getFreshValue({ metadata }) {
+            /* TODO: When staleRefreshTimeout option is removed we should
                also remove this or set it to ~0-200ms depending on ttl values.
                The intention of the delay is to not take sync resources for
                background refreshing – still we need to queue the refresh
                directly so that the de-duplication works.
                See https://github.com/epicweb-dev/cachified/issues/132 */
-              await sleep(staleRefreshTimeout);
-              report({ name: 'refreshValueStart' });
-              return context.getFreshValue({ metadata, background: true });
-            },
-            forceFresh: true,
-            fallbackToCache: false,
+            await sleep(staleRefreshTimeout);
+            report({ name: 'refreshValueStart' });
+            return context.getFreshValue({ metadata, background: true });
+          },
+          forceFresh: true,
+          fallbackToCache: false,
+        })
+          .then((value) => {
+            report({ name: 'refreshValueSuccess', value });
           })
-            .then((value) => {
-              report({ name: 'refreshValueSuccess', value });
-            })
-            .catch((error) => {
-              report({ name: 'refreshValueError', error });
-            });
-        }),
+          .catch((error) => {
+            report({ name: 'refreshValueError', error });
+          }),
       );
     }
 

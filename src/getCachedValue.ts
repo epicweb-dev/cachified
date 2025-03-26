@@ -55,11 +55,11 @@ export async function getCachedValue<Value>(
       // refresh cache in background so future requests are faster
       context.waitUntil(
         Promise.resolve().then(async () => {
-          await sleep(staleRefreshTimeout);
-          report({ name: 'refreshValueStart' });
           await cachified({
             ...context,
-            getFreshValue({ metadata }) {
+            async getFreshValue({ metadata }) {
+              await sleep(staleRefreshTimeout);
+              report({ name: 'refreshValueStart' });
               return context.getFreshValue({ metadata, background: true });
             },
             forceFresh: true,

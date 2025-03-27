@@ -590,6 +590,45 @@ describe('cachified', () => {
     expect(cache.get('weather')?.value).toBe('🌈');
   });
 
+  it('de-duplicates stale refreshes', async () => {
+    const cache = new Map<string, CacheEntry>();
+    const log: string[] = [];
+    const backgroundTasks: Promise<unknown>[] = [];
+
+    const getValue = (id: string) => {
+      return cachified({
+        cache,
+        waitUntil(p) {
+          backgroundTasks.push(p);
+        },
+        key: `test`,
+        ttl: 10,
+        swr: 50,
+        getFreshValue() {
+          log.push(id);
+          return id;
+        },
+      });
+    };
+
+    // Warm up cache
+    await getValue('1');
+
+    // These calls are background refreshing. Second one is de-duplicated.
+    currentTime = 15;
+    const call2 = getValue('2');
+    const call3 = getValue('3');
+
+    // They resolve with stale value
+    expect(await call3).toBe('1');
+    expect(await call2).toBe('1');
+
+    await Promise.all(backgroundTasks);
+
+    // Only one refresh was executed
+    expect(log).toEqual(['1', '2']);
+  });
+
   it('gets different values for different keys', async () => {
     const cache = new Map<string, CacheEntry>();
 

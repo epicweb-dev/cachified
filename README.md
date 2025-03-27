@@ -225,15 +225,6 @@ interface CachifiedOptions<Value> {
    */
   fallbackToCache?: boolean | number;
   /**
-   * Amount of time in milliseconds before revalidation of a stale
-   * cache entry is started
-   *
-   * Must be positive and finite
-   *
-   * Default: `0`
-   */
-  staleRefreshTimeout?: number;
-  /**
    * Promises passed to `waitUntil` represent background tasks which must be
    * completed before the server can shutdown. e.g. swr cache revalidation
    *

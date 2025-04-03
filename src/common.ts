@@ -184,6 +184,8 @@ export interface CachifiedOptions<Value> {
    * Must be positive and finite
    *
    * Default: `0`
+   * @deprecated manually delay background refreshes in getFreshValue instead
+   * @see https://github.com/epicweb-dev/cachified/issues/132
    */
   staleRefreshTimeout?: number;
   /**

@@ -18,7 +18,7 @@ const pendingValuesByCache = new WeakMap<Cache, Map<string, any>>();
 /**
  * Get the internal pending values cache for a given cache
  */
-function getPendingValuesCache(cache: Cache) {
+export function getPendingValuesCache(cache: Cache) {
   if (!pendingValuesByCache.has(cache)) {
     pendingValuesByCache.set(cache, new Map());
   }

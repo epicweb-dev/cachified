@@ -1,4 +1,8 @@
-import type { GetFreshValue, GetFreshValueContext } from './common';
+import type {
+  CacheMetadata,
+  GetFreshValue,
+  GetFreshValueContext,
+} from './common';
 import { HANDLE } from './common';
 
 type OnValueCallback<Value> = (
@@ -12,20 +16,25 @@ export type AddFn<Value, Param> = (
   onValue?: OnValueCallback<Value>,
 ) => GetFreshValue<Value>;
 
+export type GetFreshValues<Value, Param> = (
+  params: Param[],
+  metadata: CacheMetadata[],
+) => Value[] | Promise<Value[]>;
+
 export function createBatch<Value, Param>(
-  getFreshValues: (params: Param[]) => Value[] | Promise<Value[]>,
+  getFreshValues: GetFreshValues<Value, Param>,
   autoSubmit: false,
 ): {
   submit: () => Promise<void>;
   add: AddFn<Value, Param>;
 };
 export function createBatch<Value, Param>(
-  getFreshValues: (params: Param[]) => Value[] | Promise<Value[]>,
+  getFreshValues: GetFreshValues<Value, Param>,
 ): {
   add: AddFn<Value, Param>;
 };
 export function createBatch<Value, Param>(
-  getFreshValues: (params: Param[]) => Value[] | Promise<Value[]>,
+  getFreshValues: GetFreshValues<Value, Param>,
   autoSubmit: boolean = true,
 ): {
   submit?: () => Promise<void>;
@@ -35,6 +44,7 @@ export function createBatch<Value, Param>(
     param: Param,
     res: (value: Value) => void,
     rej: (reason: unknown) => void,
+    metadata: CacheMetadata,
   ][] = [];
 
   let count = 0;
@@ -62,7 +72,10 @@ export function createBatch<Value, Param>(
 
     try {
       const results = await Promise.resolve(
-        getFreshValues(requests.map(([param]) => param)),
+        getFreshValues(
+          requests.map(([param]) => param),
+          requests.map((args) => args[3]),
+        ),
       );
       results.forEach((value, index) => requests[index][1](value));
       submission.resolve();
@@ -97,6 +110,7 @@ export function createBatch<Value, Param>(
                 res(value);
               },
               rej,
+              context.metadata,
             ]);
             if (!handled) {
               handled = true;

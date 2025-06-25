@@ -5,6 +5,7 @@ export interface CacheMetadata {
   createdTime: number;
   ttl?: number | null;
   swr?: number | null;
+  traceId?: any;
   /** @deprecated use swr instead */
   readonly swv?: number | null;
 }
@@ -201,6 +202,11 @@ export interface CachifiedOptions<Value> {
    * Default: `undefined`
    */
   waitUntil?: (promise: Promise<unknown>) => void;
+  /**
+   * Trace ID for debugging, is stored along cache metadata and can be accessed
+   * in `getFreshValue` and reporter
+   */
+  traceId?: any;
 }
 
 /* When using a schema validator, a strongly typed getFreshValue is not required
@@ -216,12 +222,13 @@ export type CachifiedOptionsWithSchema<Value, InternalValue> = Omit<
 export interface Context<Value>
   extends Omit<
     Required<CachifiedOptions<Value>>,
-    'fallbackToCache' | 'reporter' | 'checkValue' | 'swr'
+    'fallbackToCache' | 'reporter' | 'checkValue' | 'swr' | 'traceId'
   > {
   checkValue: CheckValue<Value>;
   report: Reporter<Value>;
   fallbackToCache: number;
   metadata: CacheMetadata;
+  traceId?: any;
 }
 
 function validateWithSchema<Value>(
@@ -277,7 +284,11 @@ export function createContext<Value>(
     staleRefreshTimeout: 0,
     forceFresh: false,
     ...options,
-    metadata: createCacheMetaData({ ttl, swr: staleWhileRevalidate }),
+    metadata: createCacheMetaData({
+      ttl,
+      swr: staleWhileRevalidate,
+      traceId: options.traceId,
+    }),
     waitUntil: options.waitUntil ?? (() => {}),
   };
 
@@ -313,11 +324,13 @@ export function createCacheMetaData({
   ttl = null,
   swr = 0,
   createdTime = Date.now(),
+  traceId,
 }: Partial<Omit<CacheMetadata, 'swv'>> = {}) {
   return {
     ttl: ttl === Infinity ? null : ttl,
     swr: swr === Infinity ? null : swr,
     createdTime,
+    ...(traceId ? { traceId } : {}),
   };
 }
 

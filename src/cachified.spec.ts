@@ -35,6 +35,10 @@ function ignoreNode14<T>(callback: () => T) {
   return callback();
 }
 
+const anyMetadata = expect.objectContaining({
+  createdTime: expect.any(Number),
+} satisfies CacheMetadata);
+
 let currentTime = 0;
 beforeEach(() => {
   currentTime = 0;
@@ -1423,7 +1427,7 @@ describe('cachified', () => {
 
     expect(values).toEqual(['value-1', 'YOLO!', 'value-3']);
     expect(getValues).toHaveBeenCalledTimes(1);
-    expect(getValues).toHaveBeenCalledWith([1, 3]);
+    expect(getValues).toHaveBeenCalledWith([1, 3], [anyMetadata, anyMetadata]);
   });
 
   it('rejects all values when batch get fails', async () => {
@@ -1469,7 +1473,10 @@ describe('cachified', () => {
 
     expect(await valuesP).toEqual(['value-1', 'value-seven']);
     expect(getValues).toHaveBeenCalledTimes(1);
-    expect(getValues).toHaveBeenCalledWith([1, 'seven']);
+    expect(getValues).toHaveBeenCalledWith(
+      [1, 'seven'],
+      [anyMetadata, anyMetadata],
+    );
   });
 
   it('can edit metadata for single batch values', async () => {
@@ -1669,6 +1676,65 @@ describe('cachified', () => {
     });
 
     expect(value).toBe('ONE');
+  });
+
+  it('supports trace ids', async () => {
+    expect.assertions(6);
+
+    const cache = new Map<string, CacheEntry>();
+    const traceId1 = Symbol();
+    const d = new Deferred<string>();
+
+    const value = cachified({
+      cache,
+      key: 'test-1',
+      ttl: 200,
+      traceId: traceId1,
+      async getFreshValue({ metadata: { traceId } }) {
+        // in getFreshValue
+        expect(traceId).toBe(traceId1);
+        return d.promise;
+      },
+    });
+    await delay(0);
+
+    d.resolve('ONE');
+    expect(await value).toBe('ONE');
+
+    // on cache entry
+    expect(cache.get('test-1')?.metadata.traceId).toBe(traceId1);
+
+    const traceId2 = 'some-string-id';
+
+    // in batch getFreshValues
+    const batch = createBatch((freshIndexes, metadata) => {
+      expect(metadata[0].traceId).toBe(traceId2);
+      return freshIndexes.map((i) => `value-${i}`);
+    });
+
+    const createReporter = jest.fn(() => () => {});
+
+    await cachified(
+      {
+        cache,
+        key: 'test-2',
+        ttl: 200,
+        traceId: traceId2,
+        getFreshValue: batch.add(1),
+      },
+      createReporter,
+    );
+
+    expect(cache.get('test-2')?.metadata.traceId).toBe(traceId2);
+
+    expect(createReporter).toHaveBeenCalledWith(
+      expect.objectContaining({
+        traceId: traceId2,
+        metadata: expect.objectContaining({
+          traceId: traceId2,
+        }),
+      }),
+    );
   });
 });
 

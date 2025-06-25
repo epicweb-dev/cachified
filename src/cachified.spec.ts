@@ -13,6 +13,7 @@ import {
   CacheEntry,
   GetFreshValue,
   createCacheEntry,
+  getPendingValuesCache,
 } from './index';
 import { Deferred } from './createBatch';
 import { delay, report } from './testHelpers';
@@ -1112,6 +1113,23 @@ describe('cachified', () => {
     expect(await getValue(() => 'FOUR')).toBe('THREE');
   });
 
+  it('provides access to internal pending values cache', async () => {
+    const cache = new Map<string, CacheEntry>();
+    const pendingValuesCache = getPendingValuesCache(cache);
+    const d = new Deferred<string>();
+
+    cachified({ cache, key: 'test', ttl: 5, getFreshValue: () => d.promise });
+    await delay(0); // pending values are not set immediately
+
+    expect(pendingValuesCache.get('test')).toEqual(
+      expect.objectContaining({
+        metadata: anyMetadata,
+        value: expect.any(Promise),
+        resolve: expect.any(Function),
+      }),
+    );
+  });
+
   it('uses stale cache while revalidating', async () => {
     const cache = new Map<string, CacheEntry>();
     const reporter = createReporter();
@@ -1679,7 +1697,7 @@ describe('cachified', () => {
   });
 
   it('supports trace ids', async () => {
-    expect.assertions(6);
+    expect.assertions(7);
 
     const cache = new Map<string, CacheEntry>();
     const traceId1 = Symbol();
@@ -1697,6 +1715,11 @@ describe('cachified', () => {
       },
     });
     await delay(0);
+
+    // on pending values cache
+    expect(getPendingValuesCache(cache).get('test-1')?.metadata.traceId).toBe(
+      traceId1,
+    );
 
     d.resolve('ONE');
     expect(await value).toBe('ONE');

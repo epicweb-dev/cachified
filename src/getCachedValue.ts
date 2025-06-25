@@ -1,4 +1,4 @@
-import { Context, CacheEntry } from './common';
+import { Context, CacheEntry, CachifiedOptions } from './common';
 import { assertCacheEntry } from './assertCacheEntry';
 import { HANDLE } from './common';
 import { isExpired } from './isExpired';
@@ -32,8 +32,9 @@ export async function getCachedValue<Value>(
     staleWhileRevalidate,
     staleRefreshTimeout,
     metadata,
-    getFreshValue: { [HANDLE]: handle },
+    getFreshValue,
   } = context;
+
   try {
     const cached = await getCacheEntry(context, report);
 
@@ -52,24 +53,33 @@ export async function getCachedValue<Value>(
     }
 
     if (staleRefresh) {
+      const staleRefreshOptions: CachifiedOptions<Value> = {
+        ...context,
+        async getFreshValue({ metadata }) {
+          /* TODO: When staleRefreshTimeout option is removed we should
+           also remove this or set it to ~0-200ms depending on ttl values.
+           The intention of the delay is to not take sync resources for
+           background refreshing – still we need to queue the refresh
+           directly so that the de-duplication works.
+           See https://github.com/epicweb-dev/cachified/issues/132 */
+          await sleep(staleRefreshTimeout);
+          report({ name: 'refreshValueStart' });
+          return getFreshValue({
+            metadata,
+            background: true,
+          });
+        },
+        forceFresh: true,
+        fallbackToCache: false,
+      };
+
+      // pass down batch handle when present
+      // https://github.com/epicweb-dev/cachified/issues/144
+      staleRefreshOptions.getFreshValue[HANDLE] = context.getFreshValue[HANDLE];
+
       // refresh cache in background so future requests are faster
       context.waitUntil(
-        cachified({
-          ...context,
-          async getFreshValue({ metadata }) {
-            /* TODO: When staleRefreshTimeout option is removed we should
-               also remove this or set it to ~0-200ms depending on ttl values.
-               The intention of the delay is to not take sync resources for
-               background refreshing – still we need to queue the refresh
-               directly so that the de-duplication works.
-               See https://github.com/epicweb-dev/cachified/issues/132 */
-            await sleep(staleRefreshTimeout);
-            report({ name: 'refreshValueStart' });
-            return context.getFreshValue({ metadata, background: true });
-          },
-          forceFresh: true,
-          fallbackToCache: false,
-        })
+        cachified(staleRefreshOptions)
           .then((value) => {
             report({ name: 'refreshValueSuccess', value });
           })
@@ -89,7 +99,7 @@ export async function getCachedValue<Value>(
         });
         if (!staleRefresh) {
           // Notify batch that we handled this call using cached value
-          handle?.();
+          getFreshValue[HANDLE]?.();
         }
 
         if (valueCheck.migrated) {

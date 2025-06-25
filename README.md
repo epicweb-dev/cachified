@@ -233,6 +233,11 @@ interface CachifiedOptions<Value> {
    * Default: `undefined`
    */
   waitUntil?: (promise: Promise<unknown>) => void;
+  /**
+   * Trace ID for debugging, is stored along cache metadata and can be accessed
+   * in `getFreshValue` and reporter
+   */
+  traceId?: any;
 }
 ```
 

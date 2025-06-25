@@ -2,7 +2,6 @@ import {
   CachifiedOptions,
   CachifiedOptionsWithSchema,
   Cache,
-  CacheEntry,
   createContext,
   HANDLE,
 } from './common';
@@ -15,6 +14,16 @@ import { isExpired } from './isExpired';
 // while revalidating or getting first value
 // Keys are unique per cache but may be used by multiple caches
 const pendingValuesByCache = new WeakMap<Cache, Map<string, any>>();
+
+/**
+ * Get the internal pending values cache for a given cache
+ */
+function getPendingValuesCache(cache: Cache) {
+  if (!pendingValuesByCache.has(cache)) {
+    pendingValuesByCache.set(cache, new Map());
+  }
+  return pendingValuesByCache.get(cache)!;
+}
 
 export async function cachified<Value, InternalValue>(
   options: CachifiedOptionsWithSchema<Value, InternalValue>,
@@ -30,15 +39,7 @@ export async function cachified<Value>(
 ): Promise<Value> {
   const context = createContext(options, reporter);
   const { key, cache, forceFresh, report, metadata } = context;
-
-  // Register this cache
-  if (!pendingValuesByCache.has(cache)) {
-    pendingValuesByCache.set(cache, new Map());
-  }
-  const pendingValues: Map<
-    string,
-    CacheEntry<Promise<Value>> & { resolve: (value: Value) => void }
-  > = pendingValuesByCache.get(cache)!;
+  const pendingValues = getPendingValuesCache(cache);
 
   const hasPendingValue = () => {
     return pendingValues.has(key);

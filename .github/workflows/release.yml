@@ -70,7 +70,7 @@ jobs:
         uses: bahmutov/npm-install@v1
 
       - name: ⚙️ Semantic Release
-        uses: cycjimmy/semantic-release-action@v5.0.2
+        uses: cycjimmy/semantic-release-action@v6.0.0
         with:
           semantic_version: 25
         env:

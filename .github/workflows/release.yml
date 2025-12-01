@@ -32,7 +32,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: ⬇️ Checkout repo
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
 
       - name: ⎔ Setup node
         uses: actions/setup-node@v6
@@ -59,7 +59,7 @@ jobs:
       pull-requests: write # to be able to comment on released pull requests
     steps:
       - name: ⬇️ Checkout repo
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
 
       - name: ⎔ Setup node
         uses: actions/setup-node@v6

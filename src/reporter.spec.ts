@@ -166,7 +166,7 @@ describe('verbose reporter', () => {
     );
 
     (globalThis as any).performance = backup;
-    expect(Date.now).toBeCalledTimes(3);
+    expect(Date.now).toHaveBeenCalledTimes(3);
   });
 
   it('logs when fresh value does not meet value check', async () => {

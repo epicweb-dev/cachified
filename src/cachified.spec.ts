@@ -254,9 +254,10 @@ describe('cachified', () => {
       reporter,
     );
 
-    await expect(value).rejects.toThrowErrorMatchingInlineSnapshot(
-      `"check failed for fresh value of test"`,
-    );
+    await expect(value).rejects.toThrowErrorMatchingInlineSnapshot(`
+      "check failed for fresh value of test
+      Cause: 👮"
+    `);
 
     await ignoreNode14(() =>
       expect(value.catch((err) => err.cause)).resolves.toMatchInlineSnapshot(
@@ -293,9 +294,10 @@ describe('cachified', () => {
       },
       reporter2,
     );
-    await expect(value2).rejects.toThrowErrorMatchingInlineSnapshot(
-      `"check failed for fresh value of test"`,
-    );
+    await expect(value2).rejects.toThrowErrorMatchingInlineSnapshot(`
+      "check failed for fresh value of test
+      Cause: unknown"
+    `);
     expect(report(reporter2.mock.calls)).toMatchInlineSnapshot(`
     "1. init
        {key: 'test', metadata: {createdTime: 0, swr: 0, ttl: null}}
@@ -341,9 +343,18 @@ describe('cachified', () => {
       },
     });
 
-    await expect(value2).rejects.toThrowErrorMatchingInlineSnapshot(
-      `"check failed for fresh value of test"`,
-    );
+    await expect(value2).rejects.toThrowErrorMatchingInlineSnapshot(`
+      "check failed for fresh value of test
+      Cause: [
+        {
+          "code": "invalid_type",
+          "expected": "string",
+          "received": "number",
+          "path": [],
+          "message": "Expected string, received number"
+        }
+      ]"
+    `);
     await ignoreNode14(() =>
       expect(value2.catch((err) => err.cause)).resolves.toMatchInlineSnapshot(`
         [ZodError: [
@@ -508,9 +519,10 @@ describe('cachified', () => {
       reporter,
     );
 
-    await expect(value).rejects.toThrowErrorMatchingInlineSnapshot(
-      `"check failed for fresh value of weather"`,
-    );
+    await expect(value).rejects.toThrowErrorMatchingInlineSnapshot(`
+      "check failed for fresh value of weather
+      Cause: Bad Weather"
+    `);
     expect(report(reporter.mock.calls)).toMatchInlineSnapshot(`
 "1. init
    {key: 'weather', metadata: {createdTime: 0, swr: 0, ttl: null}}

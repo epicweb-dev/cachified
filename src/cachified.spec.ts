@@ -1771,6 +1771,59 @@ describe('cachified', () => {
       }),
     );
   });
+
+  it('rejects all values when batch loader returns wrong array length', async () => {
+    // Simulates an API that omits missing data (e.g., requesting posts 1, 2, 3
+    // but post 2 was deleted, so API returns only posts 1 and 3)
+    const getBatchLoader = () =>
+      createBatch<{ id: number; title: string }, number>((ids: number[]) => {
+        // Incorrect implementation: returns filtered results without mapping back
+        const allPosts = [
+          { id: 1, title: 'Post 1' },
+          { id: 3, title: 'Post 3' },
+        ];
+        return allPosts.filter((post) => ids.includes(post.id));
+      });
+
+    // Requesting [1, 2, 3] fails because batch loader returns only 2 items
+    const cache1 = new Map<string, CacheEntry>();
+    const batch1 = getBatchLoader();
+    const values = [1, 2, 3].map((id) =>
+      cachified({
+        cache: cache1,
+        key: `post-${id}`,
+        getFreshValue: batch1.add(id),
+      }),
+    );
+
+    await expect(values[0]).rejects.toMatchInlineSnapshot(
+      `[Error: Batch loader must return an array with the same length as the input array (expected 3, got 2)]`,
+    );
+    await expect(values[1]).rejects.toMatchInlineSnapshot(
+      `[Error: Batch loader must return an array with the same length as the input array (expected 3, got 2)]`,
+    );
+    await expect(values[2]).rejects.toMatchInlineSnapshot(
+      `[Error: Batch loader must return an array with the same length as the input array (expected 3, got 2)]`,
+    );
+
+    // Requesting [1, 3] succeeds because batch loader returns exactly 2 items
+    const cache2 = new Map<string, CacheEntry>();
+    const batch2 = getBatchLoader();
+    const validValues = await Promise.all(
+      [1, 3].map((id) =>
+        cachified({
+          cache: cache2,
+          key: `post-${id}`,
+          getFreshValue: batch2.add(id),
+        }),
+      ),
+    );
+
+    expect(validValues).toEqual([
+      { id: 1, title: 'Post 1' },
+      { id: 3, title: 'Post 3' },
+    ]);
+  });
 });
 
 function createReporter() {

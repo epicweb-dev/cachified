@@ -77,6 +77,11 @@ export function createBatch<Value, Param>(
           requests.map((args) => args[3]),
         ),
       );
+      if (results.length !== requests.length) {
+        throw new Error(
+          `Batch loader must return an array with the same length as the input array (expected ${requests.length}, got ${results.length})`,
+        );
+      }
       results.forEach((value, index) => requests[index][1](value));
       submission.resolve();
     } catch (err) {

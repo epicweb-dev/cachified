@@ -1,5 +1,6 @@
 export type {
   CachifiedOptions,
+  CachifiedOptionsWithSchema,
   Cache,
   CacheEntry,
   CacheMetadata,

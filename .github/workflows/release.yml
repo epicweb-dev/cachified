@@ -45,7 +45,7 @@ jobs:
       - name: 🃏 Run jest
         run: npm test -- --coverage=${{ matrix.coverage }}
 
-      - uses: codecov/codecov-action@v5
+      - uses: codecov/codecov-action@v6
         if: ${{ matrix.coverage }}
 
   publish:

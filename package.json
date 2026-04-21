@@ -46,7 +46,7 @@
   "devDependencies": {
     "@types/jest": "30.0.0",
     "@types/node": "25.5.0",
-    "esbuild": "0.27.3",
+    "esbuild": "0.28.0",
     "jest": "30.3.0",
     "ts-jest": "29.4.6",
     "typescript": "5.9.3",

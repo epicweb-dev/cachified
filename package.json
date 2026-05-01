@@ -45,7 +45,7 @@
   "homepage": "https://github.com/epicweb-dev/cachified#readme",
   "devDependencies": {
     "@types/jest": "30.0.0",
-    "@types/node": "25.5.0",
+    "@types/node": "25.6.0",
     "esbuild": "0.28.0",
     "jest": "30.3.0",
     "ts-jest": "29.4.6",

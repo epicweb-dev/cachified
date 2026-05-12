@@ -1,4 +1,4 @@
-name: ð Publish
+name: 🚀 Publish
 on:
   push:
     branches:
@@ -18,7 +18,7 @@ defaults:
 
 jobs:
   test:
-    name: ð§ª Test
+    name: 🧪 Test
     strategy:
       matrix:
         version: [lts/-1, lts/*, latest]
@@ -27,18 +27,18 @@ jobs:
             coverage: true
     runs-on: ubuntu-latest
     steps:
-      - name: â¬ï¸ Checkout repo
+      - name: ⬇️ Checkout repo
         uses: actions/checkout@v6
 
-      - name: â Setup node
+      - name: ⎔ Setup node
         uses: actions/setup-node@v6
         with:
           node-version: ${{ matrix.version }}
 
-      - name: ð¥ Download deps
+      - name: 📥 Download deps
         uses: bahmutov/npm-install@v1
 
-      - name: ð Run jest
+      - name: 🃏 Run jest
         run: npm test -- --coverage=${{ matrix.coverage }}
 
       - uses: codecov/codecov-action@v6
@@ -58,7 +58,7 @@ jobs:
       - name: ⬇️ Checkout repo
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
 
-      - name: ⎔ Setup node
+      - name: ⎄ Setup node
         uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
         with:
           node-version: lts/*
@@ -95,7 +95,7 @@ jobs:
       - name: ⬇️ Checkout repo
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
 
-      - name: ⎔ Setup node
+      - name: ⎄ Setup node
         uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
         with:
           node-version: 24

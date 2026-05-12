@@ -10,11 +10,7 @@ concurrency:
   cancel-in-progress: true
 
 permissions:
-  actions: write
-  contents: write # to be able to publish a GitHub release
-  id-token: write # to enable use of OIDC for npm provenance
-  issues: write # to be able to comment on released issues
-  pull-requests: write # to be able to comment on released pull requests
+  contents: read
 
 defaults:
   run:
@@ -48,31 +44,78 @@ jobs:
       - uses: codecov/codecov-action@v6
         if: ${{ matrix.coverage }}
 
-  publish:
-    name: ⚙️ Release
+  build-release-artifact:
+    name: 📦 Build release artifact
     needs: [test]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    if: ${{ github.repository == 'epicweb-dev/cachified' && github.event_name == 'push' }}
+    steps:
+      - name: ⬇️ Checkout repo
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+
+      - name: ⎔ Setup node
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
+        with:
+          node-version: lts/*
+          package-manager-cache: false
+
+      - name: 📥 Install deps
+        run: npm install --ignore-scripts
+
+      - name: 📦 Prepare package
+        run: npm run build
+
+      - name: 📦 Upload package artifact
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: npm-package-artifact
+          path: dist
+          if-no-files-found: error
+          retention-days: 7
+
+  publish:
+    name: 🚀 Release
+    needs: [build-release-artifact]
     runs-on: ubuntu-latest
     permissions:
       contents: write # to be able to publish a GitHub release
       id-token: write # to enable use of OIDC for npm provenance
       issues: write # to be able to comment on released issues
       pull-requests: write # to be able to comment on released pull requests
+    if: ${{ github.repository == 'epicweb-dev/cachified' && github.event_name == 'push' }}
     steps:
       - name: ⬇️ Checkout repo
-        uses: actions/checkout@v6
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
 
       - name: ⎔ Setup node
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
         with:
-          node-version: lts/*
+          node-version: 24
+          registry-url: https://registry.npmjs.org
+          package-manager-cache: false
 
-      - name: 📥 Download deps
-        uses: bahmutov/npm-install@v1
+      - name: 📦 Download package artifact
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: npm-package-artifact
+          path: dist
 
-      - name: ⚙️ Semantic Release
-        uses: cycjimmy/semantic-release-action@v6.0.0
+      - name: 🚀 Release
+        uses: cycjimmy/semantic-release-action@b12c8f6015dc215fe37bc154d4ad456dd3833c90 # v6.0.0
         with:
           semantic_version: 25
+          branches: |
+            [
+              '+([0-9])?(.{+([0-9]),x}).x',
+              'main',
+              'next',
+              'next-major',
+              {name: 'beta', prerelease: true},
+              {name: 'alpha', prerelease: true}
+            ]
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NPM_CONFIG_PROVENANCE: true
+          NPM_CONFIG_IGNORE_SCRIPTS: true

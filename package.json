@@ -47,7 +47,7 @@
     "@types/jest": "30.0.0",
     "@types/node": "25.6.0",
     "esbuild": "0.28.0",
-    "jest": "30.3.0",
+    "jest": "30.4.2",
     "ts-jest": "29.4.9",
     "typescript": "5.9.3",
     "zod-legacy": "npm:zod@3.23.5"

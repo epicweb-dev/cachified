@@ -81,7 +81,7 @@ export async function cachified<Value>(
   // here we inform past calls that we got a response
   if (pendingValues.has(key)) {
     const { resolve } = pendingValues.get(key)!;
-    freshValue.then((value) => resolve(value));
+    freshValue.then((value) => resolve(value)).catch(() => {});
   }
 
   pendingValues.set(key, {

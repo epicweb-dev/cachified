@@ -120,6 +120,63 @@ describe('cachified', () => {
     expect(cache.size).toBe(0);
   });
 
+  it('does not cache a value when ttl is negative and staleWhileRevalidate is set', async () => {
+    const cache = new Map<string, CacheEntry>();
+    let i = 0;
+    const getValue = () =>
+      cachified({
+        cache,
+        key: 'test',
+        ttl: -1,
+        staleWhileRevalidate: 60_000,
+        getFreshValue: () => `value-${i++}`,
+      });
+
+    expect(await getValue()).toBe('value-0');
+    expect(cache.size).toBe(0);
+    expect(await getValue()).toBe('value-1');
+    currentTime = 10;
+    expect(await getValue()).toBe('value-2');
+    expect(cache.size).toBe(0);
+  });
+
+  it('does not cache a value when getFreshValue sets a negative ttl and staleWhileRevalidate is set', async () => {
+    const cache = new Map<string, CacheEntry>();
+
+    const value = await cachified({
+      cache,
+      key: 'test',
+      ttl: 5,
+      staleWhileRevalidate: 60_000,
+      getFreshValue({ metadata }) {
+        metadata.ttl = -1;
+        return 'ONE';
+      },
+    });
+
+    expect(value).toBe('ONE');
+    expect(cache.size).toBe(0);
+  });
+
+  it('refreshes a cached entry with negative ttl even when staleWhileRevalidate is set', async () => {
+    const cache = new Map<string, CacheEntry>();
+    cache.set(
+      'test',
+      createCacheEntry('old', { ttl: -1, swr: 60_000, createdTime: 0 }),
+    );
+    currentTime = 1;
+
+    const value = await cachified({
+      cache,
+      key: 'test',
+      ttl: -1,
+      staleWhileRevalidate: 60_000,
+      getFreshValue: () => 'fresh',
+    });
+
+    expect(value).toBe('fresh');
+  });
+
   it('immediately refreshes when ttl is 0', async () => {
     const cache = new Map<string, CacheEntry>();
 

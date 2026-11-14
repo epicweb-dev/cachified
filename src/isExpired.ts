@@ -14,6 +14,11 @@ export function isExpired(metadata: CacheMetadata): boolean | 'stale' {
     return false;
   }
 
+  /* A negative TTL disables caching, so the entry is never valid nor stale */
+  if (typeof metadata.ttl === 'number' && metadata.ttl < 0) {
+    return true;
+  }
+
   const validUntil = metadata.createdTime + (metadata.ttl || 0);
   const staleUntil = validUntil + (staleWhileRevalidate(metadata) || 0);
   const now = Date.now();

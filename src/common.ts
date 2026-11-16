@@ -305,9 +305,14 @@ export function createContext<Value>(
 }
 
 export function staleWhileRevalidate(metadata: CacheMetadata): number | null {
-  return (
-    (typeof metadata.swr === 'undefined' ? metadata.swv : metadata.swr) || null
-  );
+  const swr = typeof metadata.swr === 'undefined' ? metadata.swv : metadata.swr;
+
+  /* createCacheMetaData stores an infinite swr as null */
+  if (swr === null) {
+    return Infinity;
+  }
+
+  return swr || null;
 }
 
 export function totalTtl(metadata?: CacheMetadata): number {

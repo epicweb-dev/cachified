@@ -14,6 +14,7 @@ import {
   GetFreshValue,
   createCacheEntry,
   getPendingValuesCache,
+  isExpired,
 } from './index';
 import { Deferred } from './createBatch';
 import { delay, report } from './testHelpers';
@@ -1347,6 +1348,22 @@ describe('cachified', () => {
     await delay(0);
     expect(await getValue()).toBe('value-2');
     expect(getFreshValue).toHaveBeenCalledTimes(3);
+  });
+
+  it('serves entries stored with infinite stale while revalidate as stale', async () => {
+    const cache = new Map<string, CacheEntry>();
+    cache.set('test', createCacheEntry('value-0', { ttl: 5, swr: Infinity }));
+    expect(cache.get('test')!.metadata.swr).toBe(null);
+    let i = 1;
+    const getFreshValue = jest.fn(() => `value-${i++}`);
+    const getValue = () => cachified({ cache, key: 'test', getFreshValue });
+
+    currentTime = 6;
+    expect(isExpired(cache.get('test')!.metadata)).toBe('stale');
+    expect(await getValue()).toBe('value-0');
+    await delay(0);
+    expect(getFreshValue).toHaveBeenCalledTimes(1);
+    expect(await getValue()).toBe('value-1');
   });
 
   it('ignores errors when revalidating cache in the background', async () => {

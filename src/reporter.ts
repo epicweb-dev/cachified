@@ -126,12 +126,16 @@ function formatCacheTime(
   formatDuration: (duration: number) => string,
 ) {
   const swr = staleWhileRevalidate(metadata);
-  if (metadata.ttl == null || swr == null) {
+  if (metadata.ttl == null || swr === Infinity) {
     return `forever${
       metadata.ttl != null
         ? ` (revalidation after ${formatDuration(metadata.ttl)})`
         : ''
     }`;
+  }
+
+  if (swr == null) {
+    return formatDuration(metadata.ttl);
   }
 
   return `${formatDuration(metadata.ttl)} + ${formatDuration(swr)} stale`;

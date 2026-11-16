@@ -74,6 +74,18 @@ describe('softPurge', () => {
     );
   });
 
+  it('keeps infinite stale while revalidate', async () => {
+    const cache = new Map();
+
+    cache.set('key', createCacheEntry('value', { ttl: 100, swr: Infinity }));
+
+    await softPurge({ cache, key: 'key' });
+
+    expect(cache.get('key')).toEqual(
+      createCacheEntry('value', { ttl: 0, swr: Infinity }),
+    );
+  });
+
   it('allows to set a custom stale while revalidate value', async () => {
     const cache = new Map();
     currentTime = 30;

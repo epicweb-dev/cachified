@@ -77,6 +77,25 @@ describe('verbose reporter', () => {
     `);
   });
 
+  it('logs the ttl when there is no stale while revalidate', async () => {
+    const cache = new Map<string, CacheEntry>();
+    const logger = createLogger();
+
+    await cachified(
+      {
+        cache,
+        key: 'test',
+        ttl: 50,
+        getFreshValue: () => 'VALUE',
+      },
+      verboseReporter({ logger, performance: Date }),
+    );
+
+    expect(logger.print()).toMatchInlineSnapshot(
+      `"LOG: 'Updated the cache value for test.' 'Getting a fresh value for this took 0ms.' 'Caching for 50ms in Map.'"`,
+    );
+  });
+
   it('logs when getting a fresh value fails', async () => {
     const cache = new Map<string, CacheEntry>();
     const logger = createLogger();

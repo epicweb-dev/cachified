@@ -717,6 +717,48 @@ console.log(await getUsersWithId([2, 3]));
 // cachified returns with one value from cache and one fresh value
 ```
 
+### Getting the cache status
+
+Use `cachifiedWithMetadata` instead of `cachified` when you also want to know where the value came from. It takes the same options (and reporter) and resolves with `{ value, status }`.
+
+<!-- cache-status -->
+
+```ts
+import { cachifiedWithMetadata } from '@epic-web/cachified';
+
+const cache = new Map();
+
+function getUserById(userId: number) {
+  return cachifiedWithMetadata({
+    key: `user-${userId}`,
+    cache,
+    async getFreshValue() {
+      const response = await fetch(
+        `https://jsonplaceholder.typicode.com/users/${userId}`,
+      );
+      return response.json();
+    },
+    ttl: 300_000,
+  });
+}
+
+const { value, status } = await getUserById(1);
+console.log(status);
+// > logs "MISS"
+// Cache is empty, `getFreshValue` gets invoked and its value returned
+
+console.log((await getUserById(1)).status);
+// > logs "HIT"
+// Cache is filled and valid, the cached value is returned
+```
+
+`status` is one of:
+
+- `'HIT'`: a fresh value from the cache was used
+- `'REVALIDATING'`: a stale value from the cache was used while a fresh one is fetched in the background (see [stale while revalidate](#stale-while-revalidate))
+- `'MISS'`: the value came from `getFreshValue`, or from a `getFreshValue` call for the same key that was already running
+- `'FALLBACK'`: `forceFresh` was set and `getFreshValue` failed, so the cached value was used (see [`fallbackToCache`](#forcing-fresh-values-and-falling-back-to-cache))
+
 ### Reporting
 
 A reporter might be passed as second argument to cachified to log caching events, we ship a reporter

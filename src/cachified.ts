@@ -25,6 +25,24 @@ export function getPendingValuesCache(cache: Cache) {
   return pendingValuesByCache.get(cache)!;
 }
 
+/**
+ * How the value of a `cachifiedWithMetadata` call was obtained.
+ *
+ * - `HIT`: a fresh value from the cache was used
+ * - `REVALIDATING`: a stale value from the cache was used while a background
+ *   refresh was queued (stale while revalidate)
+ * - `MISS`: the value came from `getFreshValue`, or from an in-flight
+ *   `getFreshValue` call for the same key
+ * - `FALLBACK`: `forceFresh` was set and `getFreshValue` failed, so the cached
+ *   value was used (see `fallbackToCache`)
+ */
+export type CacheStatus = 'HIT' | 'REVALIDATING' | 'MISS' | 'FALLBACK';
+
+export type CachifiedResult<Value> = {
+  value: Value;
+  status: CacheStatus;
+};
+
 export async function cachified<Value, InternalValue>(
   options: CachifiedOptionsWithSchema<Value, InternalValue>,
   reporter?: CreateReporter<Value>,
@@ -37,6 +55,32 @@ export async function cachified<Value>(
   options: CachifiedOptions<Value>,
   reporter?: CreateReporter<Value>,
 ): Promise<Value> {
+  return (await cachifiedWithStatus(options, reporter)).value;
+}
+
+/**
+ * Same as `cachified`, but resolves with the value and the `status` telling
+ * whether it came from the cache or from `getFreshValue`.
+ */
+export async function cachifiedWithMetadata<Value, InternalValue>(
+  options: CachifiedOptionsWithSchema<Value, InternalValue>,
+  reporter?: CreateReporter<Value>,
+): Promise<CachifiedResult<Value>>;
+export async function cachifiedWithMetadata<Value>(
+  options: CachifiedOptions<Value>,
+  reporter?: CreateReporter<Value>,
+): Promise<CachifiedResult<Value>>;
+export async function cachifiedWithMetadata<Value>(
+  options: CachifiedOptions<Value>,
+  reporter?: CreateReporter<Value>,
+): Promise<CachifiedResult<Value>> {
+  return cachifiedWithStatus(options, reporter);
+}
+
+async function cachifiedWithStatus<Value>(
+  options: CachifiedOptions<Value>,
+  reporter?: CreateReporter<Value>,
+): Promise<CachifiedResult<Value>> {
   const context = createContext(options, reporter);
   const { key, cache, forceFresh, report, metadata } = context;
   const pendingValues = getPendingValuesCache(cache);
@@ -48,8 +92,11 @@ export async function cachified<Value>(
     ? await getCachedValue(context, report, hasPendingValue)
     : CACHE_EMPTY;
   if (cachedValue !== CACHE_EMPTY) {
-    report({ name: 'done', value: cachedValue });
-    return cachedValue;
+    report({ name: 'done', value: cachedValue.value });
+    return {
+      value: cachedValue.value,
+      status: cachedValue.stale ? 'REVALIDATING' : 'HIT',
+    };
   }
 
   if (pendingValues.has(key)) {
@@ -61,14 +108,22 @@ export async function cachified<Value>(
       report({ name: 'getFreshValueHookPending' });
       const value = await pendingRefreshValue;
       report({ name: 'done', value });
-      return value;
+      return { value, status: 'MISS' };
     }
   }
+
+  let usedCacheFallback = false;
+  const reportAndTrackFallback: typeof report = (event) => {
+    if (event.name === 'getFreshValueCacheFallback') {
+      usedCacheFallback = true;
+    }
+    report(event);
+  };
 
   let resolveFromFuture: (value: Value) => void;
   const freshValue = Promise.race([
     // try to get a fresh value
-    getFreshValue(context, metadata, report),
+    getFreshValue(context, metadata, reportAndTrackFallback),
     // or when a future call is faster, we'll take it's value
     // this happens when getting value of first call takes longer then ttl + second response
     new Promise<Value>((r) => {
@@ -93,5 +148,5 @@ export async function cachified<Value>(
 
   const value = await freshValue;
   report({ name: 'done', value });
-  return value;
+  return { value, status: usedCacheFallback ? 'FALLBACK' : 'MISS' };
 }

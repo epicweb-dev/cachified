@@ -7,6 +7,12 @@ import { Reporter } from './reporter';
 import { checkValue } from './checkValue';
 
 export const CACHE_EMPTY = Symbol();
+
+export type CachedValue<Value> = {
+  value: Value;
+  /** true when the entry is stale and a background refresh was queued */
+  stale: boolean;
+};
 export async function getCacheEntry<Value>(
   { key, cache }: Pick<Context<Value>, 'key' | 'cache'>,
   report: Reporter<Value>,
@@ -25,7 +31,7 @@ export async function getCachedValue<Value>(
   context: Context<Value>,
   report: Reporter<Value>,
   hasPendingValue: () => boolean,
-): Promise<Value | typeof CACHE_EMPTY> {
+): Promise<CachedValue<Value> | typeof CACHE_EMPTY> {
   const {
     key,
     cache,
@@ -129,7 +135,7 @@ export async function getCachedValue<Value>(
           );
         }
 
-        return valueCheck.value;
+        return { value: valueCheck.value, stale: staleRefresh };
       } else {
         report({ name: 'checkCachedValueErrorObj', reason: valueCheck.reason });
         report({

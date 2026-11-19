@@ -11,7 +11,12 @@ export type {
 export { staleWhileRevalidate, totalTtl, createCacheEntry } from './common';
 export * from './reporter';
 export { createBatch } from './createBatch';
-export { cachified, getPendingValuesCache } from './cachified';
+export {
+  cachified,
+  cachifiedWithMetadata,
+  getPendingValuesCache,
+} from './cachified';
+export type { CacheStatus, CachifiedResult } from './cachified';
 export { cachified as default } from './cachified';
 export { shouldRefresh, isExpired } from './isExpired';
 export { assertCacheEntry } from './assertCacheEntry';

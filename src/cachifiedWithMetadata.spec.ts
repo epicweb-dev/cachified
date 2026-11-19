@@ -159,6 +159,31 @@ describe('cachifiedWithMetadata', () => {
     expect(getFreshValue).toHaveBeenCalledTimes(1);
   });
 
+  it('reports FALLBACK for calls that share an in-flight call that fell back to the cache', async () => {
+    const cache = new Map<string, CacheEntry>();
+    cache.set('test', createCacheEntry('OLD', { ttl: 5 }));
+    currentTime = 10;
+
+    const results = await Promise.all([
+      cachifiedWithMetadata({
+        cache,
+        key: 'test',
+        forceFresh: true,
+        fallbackToCache: true,
+        async getFreshValue() {
+          await delay(5);
+          throw new Error('🔥');
+        },
+      }),
+      cachifiedWithMetadata({ cache, key: 'test', getFreshValue: () => 'NEW' }),
+    ]);
+
+    expect(results).toEqual([
+      { value: 'OLD', status: 'FALLBACK' },
+      { value: 'OLD', status: 'FALLBACK' },
+    ]);
+  });
+
   it('still calls the reporter', async () => {
     const cache = new Map<string, CacheEntry>();
     const events: CacheEvent<string>[] = [];

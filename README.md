@@ -756,8 +756,10 @@ console.log((await getUserById(1)).status);
 
 - `'HIT'`: a fresh value from the cache was used
 - `'REVALIDATING'`: a stale value from the cache was used while a fresh one is fetched in the background (see [stale while revalidate](#stale-while-revalidate))
-- `'MISS'`: the value came from `getFreshValue`, or from a `getFreshValue` call for the same key that was already running
+- `'MISS'`: the value came from `getFreshValue`
 - `'FALLBACK'`: `forceFresh` was set and `getFreshValue` failed, so the cached value was used (see [`fallbackToCache`](#forcing-fresh-values-and-falling-back-to-cache))
+
+A call that shares a `getFreshValue` call for the same key that was already running reports the status of that call (`'MISS'`, or `'FALLBACK'` if it fell back to the cache).
 
 ### Reporting
 

@@ -31,10 +31,12 @@ export function getPendingValuesCache(cache: Cache) {
  * - `HIT`: a fresh value from the cache was used
  * - `REVALIDATING`: a stale value from the cache was used while a background
  *   refresh was queued (stale while revalidate)
- * - `MISS`: the value came from `getFreshValue`, or from an in-flight
- *   `getFreshValue` call for the same key
+ * - `MISS`: the value came from `getFreshValue`
  * - `FALLBACK`: `forceFresh` was set and `getFreshValue` failed, so the cached
  *   value was used (see `fallbackToCache`)
+ *
+ * A call that shares an in-flight `getFreshValue` call for the same key reports
+ * the status of that call (`MISS`, or `FALLBACK` if it fell back to the cache).
  */
 export type CacheStatus = 'HIT' | 'REVALIDATING' | 'MISS' | 'FALLBACK';
 
@@ -100,22 +102,29 @@ async function cachifiedWithStatus<Value>(
   }
 
   if (pendingValues.has(key)) {
-    const { value: pendingRefreshValue, metadata } = pendingValues.get(key)!;
+    const pending = pendingValues.get(key)!;
 
-    if (!isExpired(metadata)) {
+    if (!isExpired(pending.metadata)) {
       /* Notify batch that we handled this call using pending value */
       context.getFreshValue[HANDLE]?.();
       report({ name: 'getFreshValueHookPending' });
-      const value = await pendingRefreshValue;
+      const value = await pending.value;
       report({ name: 'done', value });
-      return { value, status: 'MISS' };
+      /* A shared value reports the status of the call that produced it */
+      return { value, status: pending.usedCacheFallback ? 'FALLBACK' : 'MISS' };
     }
   }
 
-  let usedCacheFallback = false;
+  /* Kept on the pending entry so calls that join it can read it too */
+  const pending: {
+    metadata: typeof metadata;
+    value?: Promise<Value>;
+    resolve?: (value: Value) => void;
+    usedCacheFallback: boolean;
+  } = { metadata, usedCacheFallback: false };
   const reportAndTrackFallback: typeof report = (event) => {
     if (event.name === 'getFreshValueCacheFallback') {
-      usedCacheFallback = true;
+      pending.usedCacheFallback = true;
     }
     report(event);
   };
@@ -139,14 +148,12 @@ async function cachifiedWithStatus<Value>(
     freshValue.then((value) => resolve(value)).catch(() => {});
   }
 
-  pendingValues.set(key, {
-    metadata,
-    value: freshValue,
-    // here we receive a fresh value from a future call
-    resolve: resolveFromFuture!,
-  });
+  pending.value = freshValue;
+  // here we receive a fresh value from a future call
+  pending.resolve = resolveFromFuture!;
+  pendingValues.set(key, pending);
 
   const value = await freshValue;
   report({ name: 'done', value });
-  return { value, status: usedCacheFallback ? 'FALLBACK' : 'MISS' };
+  return { value, status: pending.usedCacheFallback ? 'FALLBACK' : 'MISS' };
 }

@@ -557,6 +557,60 @@ describe('cachified', () => {
 `);
   });
 
+  it('writes migrated values of entries that were created earlier', async () => {
+    const cache = new Map<string, CacheEntry>();
+
+    cache.set('weather', createCacheEntry('☁️', { ttl: 100 }));
+    currentTime = 50;
+    const waitUntil = jest.fn();
+    const value = await cachified({
+      cache,
+      key: 'weather',
+      ttl: 100,
+      checkValue(value, migrate) {
+        if (value === '☁️') {
+          return migrate('☀️');
+        }
+      },
+      getFreshValue() {
+        throw new Error('Never');
+      },
+      waitUntil,
+    });
+
+    expect(value).toBe('☀️');
+    await waitUntil.mock.calls[0][0];
+    expect(cache.get('weather')).toEqual(
+      createCacheEntry('☀️', { ttl: 100, createdTime: 0 }),
+    );
+  });
+
+  it('does not write migrated value to cache when the entry was replaced in the meantime', async () => {
+    const cache = new Map<string, CacheEntry>();
+
+    cache.set('weather', createCacheEntry('☁️'));
+    currentTime = 50;
+    const waitUntil = jest.fn();
+    const value = await cachified({
+      cache,
+      key: 'weather',
+      checkValue(value, migrate) {
+        if (value === '☁️') {
+          return migrate('☀️');
+        }
+      },
+      getFreshValue() {
+        throw new Error('Never');
+      },
+      waitUntil,
+    });
+
+    expect(value).toBe('☀️');
+    cache.set('weather', createCacheEntry('🌈'));
+    await waitUntil.mock.calls[0][0];
+    expect(cache.get('weather')?.value).toBe('🌈');
+  });
+
   it('supports async value checkers that throw', async () => {
     const cache = new Map<string, CacheEntry>();
     const reporter = createReporter();

@@ -37,7 +37,6 @@ export async function getCachedValue<Value>(
     cache,
     staleWhileRevalidate,
     staleRefreshTimeout,
-    metadata,
     getFreshValue,
   } = context;
 
@@ -113,18 +112,19 @@ export async function getCachedValue<Value>(
             Promise.resolve().then(async () => {
               try {
                 await sleep(0); // align with original setTimeout behavior (allowing other microtasks/tasks to run)
-                const cached = await context.cache.get(context.key);
+                const current = await context.cache.get(context.key);
 
                 // Unless cached value was changed in the meantime or is about to
                 // change
                 if (
-                  cached &&
-                  cached.metadata.createdTime === metadata.createdTime &&
+                  current &&
+                  current.metadata.createdTime ===
+                    cached.metadata.createdTime &&
                   !hasPendingValue()
                 ) {
                   // update with migrated value
                   await context.cache.set(context.key, {
-                    ...cached,
+                    ...current,
                     value: valueCheck.value,
                   });
                 }
